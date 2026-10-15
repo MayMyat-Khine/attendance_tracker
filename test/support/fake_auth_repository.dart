@@ -1,4 +1,5 @@
 import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/core/error/unit.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/app_user.dart';
@@ -35,8 +36,11 @@ final class FakeAuthRepository implements AuthRepository {
     }
     final user = signedInUser;
     if (user == null) {
-      return const ResultFailure(FirebaseFailure('Account profile is missing.'));
+      return const ResultFailure(
+        FirebaseFailure('Account profile is missing.'),
+      );
     }
+    current = user;
     return Success(user);
   }
 
@@ -48,6 +52,7 @@ final class FakeAuthRepository implements AuthRepository {
     String? name,
     String? position,
     String? department,
+    ProfileImage? profileImage,
   }) async {
     registerCalls++;
     lastEmail = email;
@@ -81,6 +86,7 @@ final class FakeAuthRepository implements AuthRepository {
   @override
   Future<Result<Unit>> signOut() async {
     signOutCalls++;
+    current = null;
     return const Success(Unit());
   }
 }

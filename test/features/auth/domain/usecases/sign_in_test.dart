@@ -18,11 +18,7 @@ void main() {
 
   test('rejects an empty email without calling the repository', () async {
     final result = await signIn(
-      const SignInParams(
-        email: '   ',
-        password: 'secret',
-        expectedRole: UserRole.user,
-      ),
+      const SignInParams(email: '   ', password: 'secret'),
     );
 
     final failure = (result as ResultFailure<AppUser>).failure;
@@ -33,11 +29,7 @@ void main() {
 
   test('rejects an empty password without calling the repository', () async {
     final result = await signIn(
-      const SignInParams(
-        email: 'user@example.com',
-        password: '',
-        expectedRole: UserRole.user,
-      ),
+      const SignInParams(email: 'user@example.com', password: ''),
     );
 
     final failure = (result as ResultFailure<AppUser>).failure;
@@ -46,47 +38,17 @@ void main() {
     expect(repository.signInCalls, 0);
   });
 
-  test('rejects a user profile on the admin sign-in flow', () async {
+  test('returns the stored admin role for role-based routing', () async {
     repository.signedInUser = const AppUser(
-      id: '1',
-      email: 'user@example.com',
-      role: UserRole.user,
-    );
-
-    final result = await signIn(
-      const SignInParams(
-        email: ' user@example.com ',
-        password: 'secret',
-        expectedRole: UserRole.admin,
-      ),
-    );
-
-    final failure = (result as ResultFailure<AppUser>).failure;
-    expect(failure, isA<ValidationFailure>());
-    expect(failure.message, 'This account is not an admin.');
-    expect(repository.signOutCalls, 1);
-    expect(repository.lastEmail, 'user@example.com');
-  });
-
-  test('rejects an admin profile on the user sign-in flow', () async {
-    repository.signedInUser = const AppUser(
-      id: '1',
+      id: 'admin',
       email: 'admin@example.com',
       role: UserRole.admin,
     );
-
     final result = await signIn(
-      const SignInParams(
-        email: 'admin@example.com',
-        password: 'secret',
-        expectedRole: UserRole.user,
-      ),
+      const SignInParams(email: ' admin@example.com ', password: 'secret'),
     );
-
-    final failure = (result as ResultFailure<AppUser>).failure;
-    expect(failure, isA<ValidationFailure>());
-    expect(failure.message, 'This account is not a user.');
-    expect(repository.signOutCalls, 1);
+    expect((result as Success<AppUser>).value.role, UserRole.admin);
+    expect(repository.lastEmail, 'admin@example.com');
   });
 
   test('returns the user when the stored role matches the screen', () async {
@@ -97,11 +59,7 @@ void main() {
     );
 
     final result = await signIn(
-      const SignInParams(
-        email: 'user@example.com',
-        password: 'secret',
-        expectedRole: UserRole.user,
-      ),
+      const SignInParams(email: 'user@example.com', password: 'secret'),
     );
 
     expect(result, isA<Success<AppUser>>());

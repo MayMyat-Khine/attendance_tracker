@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/app_user.dart';
@@ -21,7 +23,6 @@ void main() {
       const RegisterAccountParams(
         email: '',
         password: 'secret',
-        role: UserRole.user,
         name: 'Ada',
         position: 'Engineer',
         department: 'IT',
@@ -35,11 +36,7 @@ void main() {
 
   test('rejects an empty password without calling the repository', () async {
     final result = await registerAccount(
-      const RegisterAccountParams(
-        email: 'user@example.com',
-        password: '',
-        role: UserRole.admin,
-      ),
+      const RegisterAccountParams(email: 'user@example.com', password: ''),
     );
 
     final failure = (result as ResultFailure<AppUser>).failure;
@@ -53,7 +50,6 @@ void main() {
       const RegisterAccountParams(
         email: 'user@example.com',
         password: 'secret',
-        role: UserRole.user,
         name: '  ',
         position: 'Engineer',
         department: 'IT',
@@ -71,7 +67,6 @@ void main() {
       const RegisterAccountParams(
         email: 'user@example.com',
         password: 'secret',
-        role: UserRole.user,
         name: 'Ada',
         position: 'Engineer',
       ),
@@ -85,10 +80,13 @@ void main() {
 
   test('registers a user with profile fields', () async {
     final result = await registerAccount(
-      const RegisterAccountParams(
+      RegisterAccountParams(
         email: ' user@example.com ',
         password: 'secret',
-        role: UserRole.user,
+        profileImage: ProfileImage(
+          bytes: Uint8List.fromList([255, 216, 255]),
+          contentType: 'image/jpeg',
+        ),
         name: ' Ada Lovelace ',
         position: ' Engineer ',
         department: 'IT',
@@ -107,17 +105,20 @@ void main() {
     expect(repository.lastDepartment, 'IT');
   });
 
-  test('registers an admin with the admin role', () async {
+  test('rejects registration without a profile image', () async {
     final result = await registerAccount(
       const RegisterAccountParams(
-        email: 'admin@example.com',
+        email: 'user@example.com',
         password: 'secret',
-        role: UserRole.admin,
+        name: 'Ada',
+        position: 'Engineer',
+        department: 'IT',
       ),
     );
-
-    expect((result as Success<AppUser>).value.role, UserRole.admin);
-    expect(repository.lastRole, UserRole.admin);
-    expect(repository.lastName, isNull);
+    expect(
+      (result as ResultFailure<AppUser>).failure,
+      isA<ValidationFailure>(),
+    );
+    expect(repository.registerCalls, 0);
   });
 }
