@@ -20,7 +20,8 @@ final class HistoryFailure extends HistoryState {
 }
 
 final class HistoryReady extends HistoryState {
-  const HistoryReady(this.days);
+  const HistoryReady(this.days, {this.failure});
+  final Failure? failure;
 
   final List<AttendanceDay> days;
 }

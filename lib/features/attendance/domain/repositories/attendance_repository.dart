@@ -11,7 +11,10 @@ abstract class AttendanceRepository {
     required GeoLocation location,
   });
 
-  Future<Result<AttendanceRecord>> checkOut({required String email});
+  Future<Result<AttendanceRecord>> checkOut({
+    required String email,
+    required GeoLocation location,
+  });
 
   Future<Result<Unit>> syncPendingLogs();
 }

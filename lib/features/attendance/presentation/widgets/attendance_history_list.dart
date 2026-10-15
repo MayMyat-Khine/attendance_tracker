@@ -33,7 +33,21 @@ class AttendanceHistoryList extends StatelessWidget {
             : (day.checkOut.isEmpty ? '—' : day.checkOut);
         return ListTile(
           title: Text(day.date),
-          subtitle: Text('Check in $checkIn · Check out $checkOut'),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Check in $checkIn · Check out $checkOut'),
+              if (day.location != null) Text('In: ${day.location}'),
+              if (day.checkOutLocation != null)
+                Text('Out: ${day.checkOutLocation}'),
+              if (day.checkOutAt != null &&
+                  day.checkOutAt!.toLocal().toString().split(' ').first !=
+                      day.date)
+                Text(
+                  'Checked out on ${day.checkOutAt!.toLocal().toString().split(' ').first}',
+                ),
+            ],
+          ),
           trailing: day.pendingSync
               ? Text('Pending', style: textTheme.labelMedium)
               : null,

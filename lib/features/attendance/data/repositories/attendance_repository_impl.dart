@@ -1,10 +1,12 @@
+import 'package:attendance_tracker/features/auth/domain/repositories/auth_repository.dart';
+import 'package:attendance_tracker/features/auth/domain/entities/user_role.dart';
 import 'package:attendance_tracker/core/error/app_exception.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/map_to_failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/core/error/unit.dart';
 import 'package:attendance_tracker/core/network/network_info.dart';
-import 'package:attendance_tracker/features/attendance/data/datasources/firebase_attendance_remote_data_source.dart';
+import 'package:attendance_tracker/features/attendance/data/datasources/attendance_remote_data_source.dart';
 import 'package:attendance_tracker/features/attendance/data/datasources/pending_attendance_store.dart';
 import 'package:attendance_tracker/features/attendance/data/models/pending_attendance_op.dart';
 import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
@@ -15,11 +17,29 @@ import 'package:attendance_tracker/features/attendance/domain/repositories/atten
 final class AttendanceRepositoryImpl implements AttendanceRepository {
   const AttendanceRepositoryImpl({
     required this._remote,
+    required this._authRepository,
     required this._store,
     required this._networkInfo,
   });
 
-  final FirebaseAttendanceRemoteDataSource _remote;
+  final AttendanceRemoteDataSource _remote;
+  final AuthRepository _authRepository;
+
+  Future<void> _ensureEmployee([String? email]) async {
+    final result = await _authRepository.currentUser();
+    switch (result) {
+      case ResultFailure(:final failure):
+        throw OperationFailureException(failure);
+      case Success(:final value):
+        if (value == null ||
+            value.role != UserRole.user ||
+            (email != null &&
+                value.email.toLowerCase() != email.toLowerCase())) {
+          throw const AccessDeniedException();
+        }
+    }
+  }
+
   final PendingAttendanceStore _store;
   final NetworkInfo _networkInfo;
 
@@ -28,6 +48,8 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     required String email,
   }) async {
     try {
+      await _ensureEmployee(email);
+      _remote.ownerKey(email);
       final records = await _store.synchronized(() => _merged(email));
       return Success(records);
     } catch (error) {
@@ -41,6 +63,7 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     required GeoLocation location,
   }) async {
     try {
+      await _ensureEmployee(email);
       final record = await _store.synchronized(
         () => _enqueueCheckIn(email: email, location: location),
       );
@@ -50,6 +73,8 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       final synced = await syncPendingLogs();
       return switch (synced) {
         Success<Unit>() => Success(record),
+        ResultFailure<Unit>(:final failure) when failure is NetworkFailure =>
+          Success(record),
         ResultFailure<Unit>(:final failure) => ResultFailure(failure),
       };
     } catch (error) {
@@ -58,10 +83,14 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   @override
-  Future<Result<AttendanceRecord>> checkOut({required String email}) async {
+  Future<Result<AttendanceRecord>> checkOut({
+    required String email,
+    required GeoLocation location,
+  }) async {
     try {
+      await _ensureEmployee(email);
       final record = await _store.synchronized(
-        () => _enqueueCheckOut(email: email),
+        () => _enqueueCheckOut(email: email, location: location),
       );
       if (!await _networkInfo.isConnected) {
         return Success(record);
@@ -69,6 +98,8 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       final synced = await syncPendingLogs();
       return switch (synced) {
         Success<Unit>() => Success(record),
+        ResultFailure<Unit>(:final failure) when failure is NetworkFailure =>
+          Success(record),
         ResultFailure<Unit>(:final failure) => ResultFailure(failure),
       };
     } catch (error) {
@@ -78,10 +109,11 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
 
   @override
   Future<Result<Unit>> syncPendingLogs() async {
-    if (!await _networkInfo.isConnected) {
-      return const ResultFailure(NetworkFailure());
-    }
     try {
+      if (!await _networkInfo.isConnected) {
+        return const ResultFailure(NetworkFailure());
+      }
+      await _ensureEmployee();
       await _store.synchronized(_uploadPending);
       return const Success(Unit());
     } catch (error) {
@@ -90,11 +122,12 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   }
 
   Future<List<AttendanceRecord>> _merged(String email) async {
+    final uid = _remote.ownerKey(email);
     final stored = await _stored(email);
     final pending = await _store.readPending();
     return _applyPending(
       stored,
-      pending.where((op) => op.email == email).toList(),
+      pending.where((op) => op.userId == uid).toList(),
     );
   }
 
@@ -102,7 +135,10 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     if (await _networkInfo.isConnected) {
       try {
         final remote = await _remote.fetchByEmail(email);
-        await _store.writeCache(email: email, records: remote);
+        await _store.writeCache(
+          email: _remote.ownerKey(email),
+          records: remote,
+        );
         return [for (final record in remote) record.toEntity()];
       } catch (error) {
         if (mapToFailure(error) is! NetworkFailure) {
@@ -110,7 +146,7 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
         }
       }
     }
-    final cached = await _store.readCache(email);
+    final cached = await _store.readCache(_remote.ownerKey(email));
     return [for (final record in cached) record.toEntity()];
   }
 
@@ -129,6 +165,7 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     }
     final record = AttendanceRecord(
       date: date,
+      checkInAt: now.toUtc(),
       checkIn: formatAttendanceTime(now),
       checkOut: '',
       latitude: location.latitude,
@@ -139,6 +176,7 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       PendingAttendanceOp(
         id: now.toUtc().microsecondsSinceEpoch.toString(),
         email: email,
+        userId: _remote.ownerKey(email),
         type: 'checkIn',
         date: record.date,
         time: record.checkIn,
@@ -150,7 +188,10 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     return record;
   }
 
-  Future<AttendanceRecord> _enqueueCheckOut({required String email}) async {
+  Future<AttendanceRecord> _enqueueCheckOut({
+    required String email,
+    required GeoLocation location,
+  }) async {
     final merged = await _merged(email);
     final open = openRecord(merged);
     if (open == null) {
@@ -158,23 +199,38 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     }
     final now = DateTime.now();
     final time = formatAttendanceTime(now);
+    if (open.checkInAt != null && now.toUtc().isBefore(open.checkInAt!)) {
+      throw const AttendanceConflictException(
+        'Check-out time must follow check-in. Check your device clock.',
+      );
+    }
     await _store.addPending(
       PendingAttendanceOp(
         id: now.toUtc().microsecondsSinceEpoch.toString(),
         email: email,
+        userId: _remote.ownerKey(email),
         type: 'checkOut',
         date: open.date,
         time: time,
+        latitude: location.latitude,
+        longitude: location.longitude,
         createdAt: now.toUtc().microsecondsSinceEpoch,
       ),
     );
-    return open.copyWith(checkOut: time, pendingSync: true);
+    return open.copyWith(
+      checkOut: time,
+      checkOutAt: now.toUtc(),
+      checkOutLatitude: location.latitude,
+      checkOutLongitude: location.longitude,
+      pendingSync: true,
+    );
   }
 
   Future<void> _uploadPending() async {
     final pending = await _store.readPending();
-    final ordered = [...pending]
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final ordered =
+        pending.where((op) => op.userId == _remote.currentUserId).toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     for (final op in ordered) {
       if (op.isCheckIn) {
         final latitude = op.latitude;
@@ -182,22 +238,39 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
         if (latitude == null || longitude == null) {
           throw const AttendanceConflictException(checkOutBeforeCheckInMessage);
         }
-        await _remote.applyCheckIn(
-          email: op.email,
-          date: op.date,
-          time: op.time,
-          latitude: latitude,
-          longitude: longitude,
-        );
+        await _remote
+            .applyCheckIn(
+              email: op.email,
+              date: op.date,
+              time: op.time,
+              createdAt: op.createdAt,
+              operationId: op.id,
+              latitude: latitude,
+              longitude: longitude,
+            )
+            .timeout(const Duration(seconds: 12));
       } else {
-        await _remote.applyCheckOut(
-          email: op.email,
-          date: op.date,
-          time: op.time,
-        );
+        final latitude = op.latitude;
+        final longitude = op.longitude;
+        if (latitude == null || longitude == null) {
+          throw const AttendanceConflictException(
+            'Missing location in pending check-out.',
+          );
+        }
+        await _remote
+            .applyCheckOut(
+              email: op.email,
+              date: op.date,
+              time: op.time,
+              createdAt: op.createdAt,
+              operationId: op.id,
+              latitude: latitude,
+              longitude: longitude,
+            )
+            .timeout(const Duration(seconds: 12));
       }
       final remote = await _remote.fetchByEmail(op.email);
-      await _store.writeCache(email: op.email, records: remote);
+      await _store.writeCache(email: op.userId, records: remote);
       await _store.removePending(op.id);
     }
   }
@@ -210,6 +283,10 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       for (final record in stored)
         AttendanceRecord(
           date: record.date,
+          checkInAt: record.checkInAt,
+          checkOutAt: record.checkOutAt,
+          checkOutLatitude: record.checkOutLatitude,
+          checkOutLongitude: record.checkOutLongitude,
           checkIn: record.checkIn,
           checkOut: record.checkOut,
           latitude: record.latitude,
@@ -230,6 +307,10 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
         records.add(
           AttendanceRecord(
             date: op.date,
+            checkInAt: DateTime.fromMicrosecondsSinceEpoch(
+              op.createdAt,
+              isUtc: true,
+            ),
             checkIn: op.time,
             checkOut: '',
             latitude: op.latitude,
@@ -242,14 +323,18 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       final dated = records.indexWhere(
         (record) => record.date == op.date && record.isOpen,
       );
-      final openIndex = dated != -1
-          ? dated
-          : records.indexWhere((record) => record.isOpen);
+      final openIndex = dated;
       if (openIndex == -1) {
         continue;
       }
       records[openIndex] = records[openIndex].copyWith(
         checkOut: op.time,
+        checkOutAt: DateTime.fromMicrosecondsSinceEpoch(
+          op.createdAt,
+          isUtc: true,
+        ),
+        checkOutLatitude: op.latitude,
+        checkOutLongitude: op.longitude,
         pendingSync: true,
       );
     }

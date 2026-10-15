@@ -2,6 +2,7 @@ final class PendingAttendanceOp {
   const PendingAttendanceOp({
     required this.id,
     required this.email,
+    required this.userId,
     required this.type,
     required this.date,
     required this.time,
@@ -12,6 +13,7 @@ final class PendingAttendanceOp {
 
   final String id;
   final String email;
+  final String userId;
   final String type;
   final String date;
   final String time;
@@ -25,6 +27,7 @@ final class PendingAttendanceOp {
     return <String, Object?>{
       'id': id,
       'email': email,
+      'userId': userId,
       'type': type,
       'date': date,
       'time': time,
@@ -38,6 +41,7 @@ final class PendingAttendanceOp {
     return PendingAttendanceOp(
       id: _string(map['id']),
       email: _string(map['email']),
+      userId: _string(map['userId']),
       type: _string(map['type']),
       date: _string(map['date']),
       time: _string(map['time']),

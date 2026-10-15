@@ -83,6 +83,13 @@ UserHistory buildCurrentMonthHistory({
       AttendanceDay(
         date: date,
         isAbsent: false,
+        checkInAt: match.checkInAt,
+        checkOutAt: match.checkOutAt,
+        location: _coordinates(match.latitude, match.longitude),
+        checkOutLocation: _coordinates(
+          match.checkOutLatitude,
+          match.checkOutLongitude,
+        ),
         checkIn: match.checkIn,
         checkOut: match.checkOut,
         pendingSync: match.pendingSync,
@@ -106,9 +113,21 @@ List<AttendanceDay> savedHistoryDays(List<AttendanceRecord> records) {
         AttendanceDay(
           date: record.date,
           isAbsent: false,
+          checkInAt: record.checkInAt,
+          checkOutAt: record.checkOutAt,
+          location: _coordinates(record.latitude, record.longitude),
+          checkOutLocation: _coordinates(
+            record.checkOutLatitude,
+            record.checkOutLongitude,
+          ),
           checkIn: record.checkIn,
           checkOut: record.checkOut,
           pendingSync: record.pendingSync,
         ),
   ];
 }
+
+String? _coordinates(double? latitude, double? longitude) =>
+    latitude == null || longitude == null
+    ? null
+    : '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';

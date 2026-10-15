@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:bloc/bloc.dart';
 
 import 'package:attendance_tracker/core/error/result.dart';
@@ -26,7 +27,11 @@ final class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     if (event is HistoryRefreshed && state is HistoryLoading) {
       return;
     }
-    await _syncPendingLogs();
+    final sync = await _syncPendingLogs();
+    final syncFailure = switch (sync) {
+      ResultFailure(:final failure) when failure is! NetworkFailure => failure,
+      _ => null,
+    };
     final userResult = await _getSignedInUser();
     switch (userResult) {
       case ResultFailure(:final failure):
@@ -44,7 +49,7 @@ final class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
           case ResultFailure(:final failure):
             emit(HistoryFailure(failure));
           case Success(:final value):
-            emit(HistoryReady(value.savedDays));
+            emit(HistoryReady(value.savedDays, failure: syncFailure));
         }
     }
   }

@@ -145,7 +145,13 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
         isSubmitting: true,
       ),
     );
-    final result = await _checkOut(email: current.email);
+    final located = await _getCurrentLocation();
+    if (located case ResultFailure(:final failure)) {
+      _emitFailure(emit, failure, keepVisible: true);
+      return;
+    }
+    final location = (located as Success<GeoLocation>).value;
+    final result = await _checkOut(email: current.email, location: location);
     final submissionFailure = switch (result) {
       ResultFailure(:final failure) => failure,
       Success() => null,
@@ -153,7 +159,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
     await _load(
       emit,
       keepVisible: true,
-      location: current.location,
+      location: location,
       failure: submissionFailure,
     );
   }

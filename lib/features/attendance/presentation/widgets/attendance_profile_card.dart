@@ -127,7 +127,9 @@ class _SquareAction extends StatelessWidget {
       width: 72,
       height: 72,
       child: Material(
-        color: enabled ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+        color: enabled
+            ? colorScheme.primary
+            : colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: enabled ? onPressed : null,

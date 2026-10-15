@@ -28,17 +28,50 @@ class HistoryPage extends StatelessWidget {
             HistoryFailure(:final failure) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(failure.message),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(failure.message),
+                    TextButton(
+                      onPressed: () => context.read<HistoryBloc>().add(
+                        const HistoryStarted(),
+                      ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
-            HistoryReady(:final days) => RefreshIndicator(
-              onRefresh: () async {
-                final bloc = context.read<HistoryBloc>();
-                final next = bloc.stream.skip(1).first;
-                bloc.add(const HistoryRefreshed());
-                await next;
-              },
-              child: AttendanceHistoryList(days: days),
+            HistoryReady(:final days, :final failure) => Column(
+              children: [
+                if (failure != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(failure.message),
+                        TextButton(
+                          onPressed: () => context.read<HistoryBloc>().add(
+                            const HistoryStarted(),
+                          ),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      final bloc = context.read<HistoryBloc>();
+                      final next = bloc.stream.first;
+                      bloc.add(const HistoryRefreshed());
+                      await next;
+                    },
+                    child: AttendanceHistoryList(days: days),
+                  ),
+                ),
+              ],
             ),
           };
         },

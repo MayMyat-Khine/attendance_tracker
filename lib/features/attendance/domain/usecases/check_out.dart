@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/features/attendance/domain/entities/geo_location.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
@@ -9,7 +10,10 @@ final class CheckOut {
 
   final AttendanceRepository _repository;
 
-  Future<Result<AttendanceRecord>> call({required String email}) async {
+  Future<Result<AttendanceRecord>> call({
+    required String email,
+    required GeoLocation location,
+  }) async {
     final history = await _repository.getHistory(email: email);
     switch (history) {
       case ResultFailure<List<AttendanceRecord>>(:final failure):
@@ -20,7 +24,7 @@ final class CheckOut {
             ValidationFailure(checkInBeforeCheckOutMessage),
           );
         }
-        return _repository.checkOut(email: email);
+        return _repository.checkOut(email: email, location: location);
     }
   }
 }

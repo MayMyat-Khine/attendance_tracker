@@ -1,14 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'attendance_persistence_io.dart'
+    if (dart.library.js_interop) 'attendance_persistence_web.dart'
+    as persistence;
 
 import 'package:attendance_tracker/features/attendance/data/models/attendance_record_model.dart';
 import 'package:attendance_tracker/features/attendance/data/models/pending_attendance_op.dart';
 
 final class PendingAttendanceStore {
-  PendingAttendanceStore();
+  PendingAttendanceStore({
+    this.readPayload = persistence.readPayload,
+    this.writePayload = persistence.writePayload,
+  });
+  final Future<String?> Function() readPayload;
+  final Future<void> Function(String) writePayload;
 
   Future<void> _lock = Future<void>.value();
 
@@ -16,7 +22,7 @@ final class PendingAttendanceStore {
     final completer = Completer<T>();
     _lock = _lock.then((_) async {
       try {
-        completer.complete(await action());
+        completer.complete(await persistence.withPersistenceLock(action));
       } catch (error, stackTrace) {
         completer.completeError(error, stackTrace);
       }
@@ -56,11 +62,11 @@ final class PendingAttendanceStore {
   }
 
   Future<_StoredAttendance> _read() async {
-    final file = await _file();
-    if (!file.existsSync()) {
+    final payload = await readPayload();
+    if (payload == null) {
       return _StoredAttendance();
     }
-    final Object? decoded = jsonDecode(await file.readAsString());
+    final Object? decoded = jsonDecode(payload);
     if (decoded is! Map) {
       return _StoredAttendance();
     }
@@ -98,7 +104,6 @@ final class PendingAttendanceStore {
   }
 
   Future<void> _write(_StoredAttendance stored) async {
-    final file = await _file();
     final payload = <String, Object?>{
       'pending': [for (final op in stored.pending) op.toMap()],
       'caches': {
@@ -106,12 +111,7 @@ final class PendingAttendanceStore {
           entry.key: [for (final record in entry.value) record.toCacheMap()],
       },
     };
-    await file.writeAsString(jsonEncode(payload));
-  }
-
-  Future<File> _file() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/attendance_history_queue.json');
+    await writePayload(jsonEncode(payload));
   }
 }
 

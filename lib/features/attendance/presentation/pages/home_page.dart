@@ -38,7 +38,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRouter.logout,
+              (_) => false,
+            ),
+          ),
+        ],
+      ),
       body: BlocConsumer<HomeBloc, HomeState>(
         listener: (context, state) {
           if (state is HomeSignedOut) {
@@ -52,7 +65,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             HomeLoadFailure(:final failure) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(failure.message),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(failure.message),
+                    TextButton(
+                      onPressed: () =>
+                          context.read<HomeBloc>().add(const HomeStarted()),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
             HomeReady() => _HomeBody(state: state),
@@ -74,6 +97,7 @@ class _HomeBody extends StatelessWidget {
 
     return Column(
       children: [
+        ListTile(title: Text(state.name), subtitle: Text(state.email)),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: AttendanceProfileCard(
@@ -104,11 +128,27 @@ class _HomeBody extends StatelessWidget {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Icon(Icons.location_on_outlined, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  state.location == null
+                      ? 'Location unavailable. Enable GPS and location permission.'
+                      : '${state.location!.latitude.toStringAsFixed(5)}, ${state.location!.longitude.toStringAsFixed(5)}',
+                ),
+              ),
+            ],
+          ),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
               final bloc = context.read<HomeBloc>();
-              final next = bloc.stream.skip(1).first;
+              final next = bloc.stream.first;
               bloc.add(const HomeRefreshed());
               await next;
             },
