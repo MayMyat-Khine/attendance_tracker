@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -24,6 +23,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    buildFeatures { resValues = true }
+
+    flavorDimensions += "environment"
+    productFlavors {
+        create("local") { dimension = "environment"; resValue("string", "app_name", "Attendance Local") }
+        create("staging") { dimension = "environment"; resValue("string", "app_name", "Attendance Staging") }
+        create("production") { dimension = "environment"; resValue("string", "app_name", "Attendance Tracker") }
     }
 
     buildTypes {

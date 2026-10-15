@@ -1,0 +1,10 @@
+{
+  "FIREBASE_PROJECT_ID": "attendancetracker-b7a9b",
+  "FIREBASE_SENDER_ID": "114999346116",
+  "FIREBASE_STORAGE_BUCKET": "attendancetracker-b7a9b.firebasestorage.app",
+  "FIREBASE_ANDROID_API_KEY": "AIzaSyAyfeyrJPe-HsME3dmNcyTX90zIIwbJvVo",
+  "FIREBASE_ANDROID_APP_ID": "1:114999346116:android:6ca23002fdd2383926da91",
+  "FIREBASE_IOS_API_KEY": "AIzaSyBwqm1FqryWvFO3_1odupVDZrR4UAhKiGo",
+  "FIREBASE_IOS_APP_ID": "1:114999346116:ios:1351c622f7f1247c26da91",
+  "IOS_BUNDLE_ID": "com.example.attendanceTracker"
+}
