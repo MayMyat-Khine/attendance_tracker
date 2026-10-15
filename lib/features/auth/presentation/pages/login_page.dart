@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/login_event.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/login_state.dart';
@@ -28,7 +29,10 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(
+        title: const Text('Login'),
+        actions: const [ThemeModeButton()],
+      ),
       body: BlocConsumer<LoginBloc, LoginState>(
         listener: (context, state) {
           switch (state) {
@@ -84,19 +88,19 @@ class _LoginPageState extends State<LoginPage> {
                           },
                     child: const Text('Register'),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: isSubmitting
-                        ? null
-                        : () {
-                            context.read<LoginBloc>().add(
-                              ForgotPasswordRequested(
-                                email: _emailController.text,
-                              ),
-                            );
-                          },
-                    child: const Text('Forgot password'),
-                  ),
+                  // const SizedBox(height: 8),
+                  // OutlinedButton(
+                  //   onPressed: isSubmitting
+                  //       ? null
+                  //       : () {
+                  //           context.read<LoginBloc>().add(
+                  //             ForgotPasswordRequested(
+                  //               email: _emailController.text,
+                  //             ),
+                  //           );
+                  //         },
+                  //   child: const Text('Forgot password'),
+                  // ),
                 ],
               ),
             ),

@@ -36,17 +36,23 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    final credential = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final builtInAdmin = BuiltInAdmin.matches(email: email, password: password);
+    final credential = builtInAdmin
+        ? await _signInBuiltInAdmin()
+        : await _auth.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
     final uid = credential.user?.uid;
     if (uid == null) {
       throw FirebaseException(plugin: 'firebase_auth', code: 'user-not-found');
     }
 
-    if (BuiltInAdmin.matches(email: email, password: password)) {
-      return _cacheBuiltInAdmin(uid, credential.user?.email ?? email);
+    if (builtInAdmin) {
+      return _cacheBuiltInAdmin(
+        uid,
+        credential.user?.email ?? BuiltInAdmin.email,
+      );
     }
 
     final profile = await _readProfile(uid, server: true);
@@ -142,6 +148,34 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<void> signOut() async {
     _cachedProfile = null;
     await _auth.signOut();
+  }
+
+  Future<UserCredential> _signInBuiltInAdmin() async {
+    try {
+      return await _auth.signInWithEmailAndPassword(
+        email: BuiltInAdmin.email,
+        password: BuiltInAdmin.password,
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!_builtInAdminCanBeCreated(error.code)) rethrow;
+    }
+
+    try {
+      return await _auth.createUserWithEmailAndPassword(
+        email: BuiltInAdmin.email,
+        password: BuiltInAdmin.password,
+      );
+    } on FirebaseAuthException catch (error) {
+      if (error.code != 'email-already-in-use') rethrow;
+      throw FirebaseAuthException(code: 'invalid-credential');
+    }
+  }
+
+  bool _builtInAdminCanBeCreated(String code) {
+    return code == 'user-not-found' ||
+        code == 'invalid-credential' ||
+        code == 'wrong-password' ||
+        code == 'invalid-login-credentials';
   }
 
   AppUserModel _cacheBuiltInAdmin(String uid, String email) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/features/admin_dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
 
@@ -11,6 +12,7 @@ class DashboardPage extends StatelessWidget {
     appBar: AppBar(
       title: const Text('Admin dashboard'),
       actions: [
+        const ThemeModeButton(),
         IconButton(
           tooltip: 'Sign out',
           icon: const Icon(Icons.logout),
@@ -47,32 +49,58 @@ class DashboardPage extends StatelessWidget {
               if (ready.failure case final failure?) ...[
                 Text(
                   failure.message,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                TextButton(
-                  onPressed: () => context.read<DashboardBloc>().add(
-                    const DashboardRefreshed(),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
                   ),
-                  child: const Text('Retry'),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => context.read<DashboardBloc>().add(
+                      const DashboardRefreshed(),
+                    ),
+                    child: const Text('Retry'),
+                  ),
                 ),
               ],
               if (ready.summary case final summary?) ...[
                 _CountCard(
-                  'Registered users',
-                  summary.totalUsers,
-                  Icons.people_outline,
+                  label: 'Registered users',
+                  count: summary.totalUsers,
+                  icon: Icons.people_outline,
                 ),
-                _CountCard('Check-ins today', summary.checkIns, Icons.login),
-                _CountCard('Check-outs today', summary.checkOuts, Icons.logout),
+                _CountCard(
+                  label: 'Check-ins today',
+                  count: summary.checkIns,
+                  icon: Icons.login,
+                ),
+                _CountCard(
+                  label: 'Check-outs today',
+                  count: summary.checkOuts,
+                  icon: Icons.logout,
+                ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
               FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () => Navigator.pushNamed(context, AppRouter.users),
                 icon: const Icon(Icons.people),
                 label: const Text('Users'),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () =>
                     Navigator.pushNamed(context, AppRouter.adminHistory),
                 icon: const Icon(Icons.history),
@@ -87,19 +115,48 @@ class DashboardPage extends StatelessWidget {
 }
 
 class _CountCard extends StatelessWidget {
-  const _CountCard(this.label, this.count, this.icon);
+  const _CountCard({
+    required this.label,
+    required this.count,
+    required this.icon,
+  });
+
   final String label;
   final int count;
   final IconData icon;
+
   @override
-  Widget build(BuildContext context) => Card(
-    child: ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: Text(
-        '$count',
-        style: Theme.of(context).textTheme.headlineMedium,
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: colorScheme.outline),
       ),
-    ),
-  );
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(icon, color: colorScheme.onPrimaryContainer),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(label, style: textTheme.titleMedium)),
+            Text('$count', style: textTheme.headlineSmall),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:attendance_tracker/core/config/app_environment.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
 import 'package:attendance_tracker/features/attendance/domain/entities/attendance_action.dart';
 import 'package:attendance_tracker/features/attendance/domain/entities/attendance_day.dart';
@@ -46,6 +47,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       appBar: AppBar(
         title: const Text('Home'),
         actions: [
+          const ThemeModeButton(),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),

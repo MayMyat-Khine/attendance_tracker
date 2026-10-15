@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/history_bloc.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/history_event.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/history_state.dart';
@@ -13,7 +14,10 @@ class HistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(
+        title: const Text('History'),
+        actions: const [ThemeModeButton()],
+      ),
       body: BlocConsumer<HistoryBloc, HistoryState>(
         listener: (context, state) {
           if (state is HistorySignedOut) {

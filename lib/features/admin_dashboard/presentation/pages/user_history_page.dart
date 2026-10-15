@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:attendance_tracker/features/admin_dashboard/presentation/bloc/user_history_bloc.dart';
 import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
@@ -11,6 +12,7 @@ class UserHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(userName == null ? 'All attendance' : '$userName · History'),
+      actions: const [ThemeModeButton()],
     ),
     body: BlocBuilder<UserHistoryBloc, UserHistoryState>(
       builder: (context, state) {

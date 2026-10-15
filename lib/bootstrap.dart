@@ -28,7 +28,11 @@ Future<void> bootstrap(AppEnvironment environment) async {
   if (kIsWeb && environment == AppEnvironment.local) {
     await prepareLocalWebFirebase(options, host);
   }
-  await Firebase.initializeApp(options: options);
+  try {
+    await Firebase.initializeApp(options: options);
+  } on FirebaseException catch (error) {
+    if (error.code != 'duplicate-app') rethrow;
+  }
   if (kIsWeb) {
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,

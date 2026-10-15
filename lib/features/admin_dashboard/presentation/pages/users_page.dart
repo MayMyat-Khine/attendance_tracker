@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/features/admin_dashboard/presentation/bloc/users_bloc.dart';
 
 class UsersPage extends StatefulWidget {
@@ -22,7 +23,10 @@ class _UsersPageState extends State<UsersPage> {
       context.read<UsersBloc>().add(UsersSearchChanged(_search.text, _byEmail));
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Users')),
+    appBar: AppBar(
+      title: const Text('Users'),
+      actions: const [ThemeModeButton()],
+    ),
     body: Column(
       children: [
         Padding(
@@ -49,6 +53,22 @@ class _UsersPageState extends State<UsersPage> {
                       ? 'Email starts with…'
                       : 'Name starts with…',
                   prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    ),
+                  ),
                 ),
               ),
             ],

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/department.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_bloc.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_event.dart';
@@ -34,7 +35,10 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(
+        title: const Text('Register'),
+        actions: const [ThemeModeButton()],
+      ),
       body: BlocConsumer<RegisterBloc, RegisterState>(
         listener: (context, state) {
           if (state case RegisterSucceeded(:final user)) {
