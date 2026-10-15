@@ -61,10 +61,12 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final checkIn = day.isAbsent ? 'Absent' : displayAttendanceTime(day.checkIn);
-    final checkOut = day.isAbsent
-        ? 'Absent'
-        : displayAttendanceTime(day.checkOut);
+    final checkIn = displayAttendanceTime(day.checkIn);
+    final checkOut = displayAttendanceTime(day.checkOut);
+    final absent = isAbsentStatus(
+      checkIn: day.checkIn,
+      checkOut: day.checkOut,
+    );
 
     return Card(
       margin: EdgeInsets.zero,
@@ -86,6 +88,8 @@ class _HistoryCard extends StatelessWidget {
                     style: textTheme.titleMedium,
                   ),
                 ),
+                if (absent) Text('Absent', style: textTheme.labelLarge),
+                if (absent && day.pendingSync) const SizedBox(width: 8),
                 if (day.pendingSync)
                   Text('Pending', style: textTheme.labelMedium),
               ],

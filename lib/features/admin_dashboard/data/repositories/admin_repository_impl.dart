@@ -1,4 +1,5 @@
 import 'package:attendance_tracker/core/config/app_environment.dart';
+import 'package:attendance_tracker/core/config/built_in_admin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:attendance_tracker/core/error/result.dart';
@@ -12,22 +13,24 @@ final class AdminRepositoryImpl implements AdminRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   Future<Result<T>> _run<T>(Future<T> Function() action) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user?.uid == null) {
         throw FirebaseException(
           plugin: 'cloud_firestore',
           code: 'permission-denied',
         );
       }
-      final profile = await _db
-          .collection(AppConfig.users)
-          .doc(uid)
-          .get(const GetOptions(source: Source.server));
-      if (profile.data()?['role'] != 'admin') {
-        throw FirebaseException(
-          plugin: 'cloud_firestore',
-          code: 'permission-denied',
-        );
+      if (!BuiltInAdmin.matchesEmail(user!.email)) {
+        final profile = await _db
+            .collection(AppConfig.users)
+            .doc(user.uid)
+            .get(const GetOptions(source: Source.server));
+        if (profile.data()?['role'] != 'admin') {
+          throw FirebaseException(
+            plugin: 'cloud_firestore',
+            code: 'permission-denied',
+          );
+        }
       }
       return Success(await action().timeout(const Duration(seconds: 15)));
     } catch (error) {

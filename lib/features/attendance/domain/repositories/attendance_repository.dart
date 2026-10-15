@@ -9,6 +9,7 @@ abstract class AttendanceRepository {
   Future<Result<AttendanceRecord>> checkIn({
     required String email,
     required GeoLocation location,
+    String? date,
   });
 
   Future<Result<AttendanceRecord>> checkOut({

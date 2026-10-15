@@ -15,7 +15,9 @@ final class HomeRefreshed extends HomeEvent {
 }
 
 final class CheckInRequested extends HomeEvent {
-  const CheckInRequested();
+  const CheckInRequested({this.date});
+
+  final String? date;
 }
 
 final class CheckOutRequested extends HomeEvent {

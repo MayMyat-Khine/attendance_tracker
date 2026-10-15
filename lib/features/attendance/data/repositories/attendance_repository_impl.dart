@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/core/config/app_environment.dart';
 import 'package:attendance_tracker/features/auth/domain/repositories/auth_repository.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/user_role.dart';
 import 'package:attendance_tracker/core/error/app_exception.dart';
@@ -61,11 +62,12 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<Result<AttendanceRecord>> checkIn({
     required String email,
     required GeoLocation location,
+    String? date,
   }) async {
     try {
       await _ensureEmployee(email);
       final record = await _store.synchronized(
-        () => _enqueueCheckIn(email: email, location: location),
+        () => _enqueueCheckIn(email: email, location: location, date: date),
       );
       if (!await _networkInfo.isConnected) {
         return Success(record);
@@ -153,18 +155,19 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<AttendanceRecord> _enqueueCheckIn({
     required String email,
     required GeoLocation location,
+    String? date,
   }) async {
     final merged = await _merged(email);
     if (openRecord(merged) != null) {
       throw const AttendanceConflictException(checkOutBeforeCheckInMessage);
     }
     final now = DateTime.now();
-    final date = formatAttendanceDate(now);
-    if (isDayComplete(merged, date)) {
+    final recordDate = _testDate(date) ?? formatAttendanceDate(now);
+    if (isDayComplete(merged, recordDate)) {
       throw const AttendanceConflictException(alreadyCheckedOutMessage);
     }
     final record = AttendanceRecord(
-      date: date,
+      date: recordDate,
       checkInAt: now.toUtc(),
       checkIn: formatAttendanceTime(now),
       checkOut: '',
@@ -186,6 +189,13 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       ),
     );
     return record;
+  }
+
+  String? _testDate(String? date) {
+    if (date == null || AppConfig.environment == AppEnvironment.production) {
+      return null;
+    }
+    return date;
   }
 
   Future<AttendanceRecord> _enqueueCheckOut({

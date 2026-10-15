@@ -9,6 +9,7 @@ class AttendanceProfileCard extends StatelessWidget {
   const AttendanceProfileCard({
     required this.date,
     required this.locationLabel,
+    this.coordinates,
     required this.day,
     required this.action,
     required this.isSubmitting,
@@ -20,6 +21,7 @@ class AttendanceProfileCard extends StatelessWidget {
 
   final String date;
   final String locationLabel;
+  final String? coordinates;
   final AttendanceDay? day;
   final AttendanceAction action;
   final bool isSubmitting;
@@ -45,7 +47,18 @@ class AttendanceProfileCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(displayAttendanceDate(date), style: textTheme.titleMedium),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayAttendanceDate(date),
+                              style: textTheme.titleMedium,
+                            ),
+                          ),
+                          if (_absent)
+                            Text('Absent', style: textTheme.labelLarge),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       Text('Check in', style: textTheme.labelLarge),
                       const SizedBox(height: 4),
@@ -61,7 +74,22 @@ class AttendanceProfileCard extends StatelessWidget {
                         style: textTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
-                      Text(locationLabel, style: textTheme.bodyMedium),
+                      coordinates == null
+                          ? Text(locationLabel, style: textTheme.bodyMedium)
+                          : Row(
+                              children: [
+                                Text('Location', style: textTheme.bodyMedium),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    coordinates!,
+                                    style: textTheme.bodyMedium,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ],
                   ),
                 ),
@@ -87,12 +115,15 @@ class AttendanceProfileCard extends StatelessWidget {
     );
   }
 
+  bool get _absent =>
+      day == null ||
+      isAbsentStatus(checkIn: day!.checkIn, checkOut: day!.checkOut);
+
   String _timeLabel(AttendanceDay? day, {required bool isCheckIn}) {
-    if (day == null || day.isAbsent) {
-      return 'Absent';
+    if (day == null) {
+      return '-';
     }
-    final value = isCheckIn ? day.checkIn : day.checkOut;
-    return displayAttendanceTime(value);
+    return displayAttendanceTime(isCheckIn ? day.checkIn : day.checkOut);
   }
 }
 

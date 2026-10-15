@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/core/config/built_in_admin.dart';
 import 'package:attendance_tracker/core/network/network_info.dart';
 import 'package:attendance_tracker/core/config/app_environment.dart';
 // import 'package:firebase_storage/firebase_storage.dart';
@@ -42,6 +43,10 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     final uid = credential.user?.uid;
     if (uid == null) {
       throw FirebaseException(plugin: 'firebase_auth', code: 'user-not-found');
+    }
+
+    if (BuiltInAdmin.matches(email: email, password: password)) {
+      return _cacheBuiltInAdmin(uid, credential.user?.email ?? email);
     }
 
     final profile = await _readProfile(uid, server: true);
@@ -123,6 +128,9 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     if (_cachedProfile?.id == uid) {
       return _cachedProfile;
     }
+    if (BuiltInAdmin.matchesEmail(_auth.currentUser?.email)) {
+      return _cacheBuiltInAdmin(uid, _auth.currentUser!.email!);
+    }
     final profile = await _readProfile(uid);
     if (profile == null) {
       await _auth.signOut();
@@ -134,6 +142,17 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<void> signOut() async {
     _cachedProfile = null;
     await _auth.signOut();
+  }
+
+  AppUserModel _cacheBuiltInAdmin(String uid, String email) {
+    final model = AppUserModel(
+      id: uid,
+      email: email,
+      role: UserRole.admin,
+      name: 'Admin',
+    );
+    _cachedProfile = model;
+    return model;
   }
 
   Future<AppUserModel?> _readProfile(String uid, {bool server = false}) async {

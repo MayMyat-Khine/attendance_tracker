@@ -63,10 +63,13 @@ String formatAttendanceTime(DateTime value) {
   return '$hour:$minute';
 }
 
+bool isAbsentStatus({required String checkIn, required String checkOut}) =>
+    checkIn.trim().isEmpty && checkOut.trim().isEmpty;
+
 String displayAttendanceTime(String stored) {
   final value = stored.trim();
   if (value.isEmpty) {
-    return 'Absent';
+    return '-';
   }
   final parts = value.split(':');
   if (parts.length != 2) {

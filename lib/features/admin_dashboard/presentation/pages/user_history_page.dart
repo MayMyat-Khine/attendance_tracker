@@ -90,10 +90,23 @@ class UserHistoryPage extends StatelessWidget {
                                 log.email,
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
-                              Text(displayAttendanceDate(log.record.date)),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      displayAttendanceDate(log.record.date),
+                                    ),
+                                  ),
+                                  if (isAbsentStatus(
+                                    checkIn: log.record.checkIn,
+                                    checkOut: log.record.checkOut,
+                                  ))
+                                    const Text('Absent'),
+                                ],
+                              ),
                               const SizedBox(height: 8),
                               Text(
-                                'Check in: ${log.record.checkIn.isEmpty ? 'Absent' : displayAttendanceTime(log.record.checkIn)}',
+                                'Check in: ${displayAttendanceTime(log.record.checkIn)}',
                               ),
                               if (log.record.latitude != null &&
                                   log.record.longitude != null)
@@ -103,7 +116,7 @@ class UserHistoryPage extends StatelessWidget {
                                   ),
                                 ),
                               Text(
-                                'Check out: ${log.record.checkOut.isEmpty ? 'Absent' : displayAttendanceTime(log.record.checkOut)}',
+                                'Check out: ${displayAttendanceTime(log.record.checkOut)}',
                               ),
                             ],
                           ),

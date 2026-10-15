@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:attendance_tracker/core/config/app_environment.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/features/attendance/domain/entities/attendance_action.dart';
+import 'package:attendance_tracker/features/attendance/domain/entities/attendance_day.dart';
+import 'package:attendance_tracker/features/attendance/domain/entities/user_history.dart';
 import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/home_bloc.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/home_event.dart';
@@ -87,15 +91,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 }
 
-class _HomeBody extends StatelessWidget {
+class _HomeBody extends StatefulWidget {
   const _HomeBody({required this.state});
 
   final HomeReady state;
 
   @override
+  State<_HomeBody> createState() => _HomeBodyState();
+}
+
+class _HomeBodyState extends State<_HomeBody> {
+  String _selectedDate = formatAttendanceDate(DateTime.now());
+
+  bool get _testDates => AppConfig.environment != AppEnvironment.production;
+
+  @override
   Widget build(BuildContext context) {
-    final today = state.history.days.isEmpty ? null : state.history.days.first;
+    final state = widget.state;
+    final selectedDate = _testDates
+        ? _selectedDate
+        : formatAttendanceDate(DateTime.now());
+    final today = _dayFor(state.history, selectedDate);
     final location = state.location;
+    final action = _actionFor(state.history, selectedDate);
 
     return Column(
       children: [
@@ -114,23 +132,29 @@ class _HomeBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: AttendanceProfileCard(
-            date: today?.date ?? formatAttendanceDate(DateTime.now()),
-            locationLabel: location == null
-                ? 'Check in Location unavailable. Enable GPS and location permission.'
-                : displayLocation(
-                    '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}',
-                  ),
+            date: today.date,
+            locationLabel:
+                'Location unavailable. Enable GPS and location permission.',
+            coordinates: location == null
+                ? null
+                : '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}',
             day: today,
-            action: state.history.action,
+            action: action,
             isSubmitting: state.isSubmitting,
             failure: state.failure,
             onCheckIn: () {
-              context.read<HomeBloc>().add(const CheckInRequested());
+              context.read<HomeBloc>().add(
+                CheckInRequested(date: _testDates ? selectedDate : null),
+              );
             },
             onCheckOut: () {
               context.read<HomeBloc>().add(const CheckOutRequested());
             },
           ),
+        ),
+        if (_testDates) _TestDateList(
+          selectedDate: selectedDate,
+          onSelected: (date) => setState(() => _selectedDate = date),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
@@ -158,6 +182,82 @@ class _HomeBody extends StatelessWidget {
             child: AttendanceHistoryList(
               days: state.history.savedDays.take(5).toList(),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  AttendanceDay _dayFor(UserHistory history, String date) {
+    for (final day in history.savedDays) {
+      if (day.date == date) {
+        return day;
+      }
+    }
+    for (final day in history.days) {
+      if (day.date == date) {
+        return day;
+      }
+    }
+    return AttendanceDay(date: date, isAbsent: true);
+  }
+
+  AttendanceAction _actionFor(UserHistory history, String date) {
+    final day = _dayFor(history, date);
+    if (day.checkIn.isNotEmpty && day.checkOut.isEmpty) {
+      return AttendanceAction.checkOut;
+    }
+    if (day.checkOut.isNotEmpty) {
+      return AttendanceAction.completed;
+    }
+    if (history.action == AttendanceAction.checkOut) {
+      return AttendanceAction.checkOut;
+    }
+    return AttendanceAction.checkIn;
+  }
+}
+
+class _TestDateList extends StatelessWidget {
+  const _TestDateList({
+    required this.selectedDate,
+    required this.onSelected,
+  });
+
+  final String selectedDate;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final dates = [
+      for (var offset = 0; offset < 7; offset++)
+        formatAttendanceDate(today.subtract(Duration(days: offset))),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Text(
+            'Test dates',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ),
+        SizedBox(
+          height: 56,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: dates.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final date = dates[index];
+              return ChoiceChip(
+                label: Text(displayAttendanceDate(date)),
+                selected: date == selectedDate,
+                onSelected: (_) => onSelected(date),
+              );
+            },
           ),
         ),
       ],
