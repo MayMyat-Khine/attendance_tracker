@@ -48,9 +48,9 @@ class AuthFields extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.error,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
           ),
         ],
         const SizedBox(height: 24),

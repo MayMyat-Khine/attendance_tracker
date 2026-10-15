@@ -1,3 +1,5 @@
+import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/core/error/unit.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/app_user.dart';
@@ -12,6 +14,7 @@ final class RegisterAccountParams {
     this.name,
     this.position,
     this.department,
+    this.profileImage,
   });
 
   final String email;
@@ -19,6 +22,7 @@ final class RegisterAccountParams {
   final String? name;
   final String? position;
   final String? department;
+  final ProfileImage? profileImage;
 }
 
 final class RegisterAccount {
@@ -38,6 +42,11 @@ final class RegisterAccount {
       return Future.value(ResultFailure(validation.failure));
     }
 
+    if (params.profileImage == null) {
+      return Future.value(
+        const ResultFailure(ValidationFailure('Choose a profile image.')),
+      );
+    }
     return _repository.register(
       email: params.email.trim(),
       password: params.password,
@@ -45,6 +54,7 @@ final class RegisterAccount {
       name: params.name?.trim(),
       position: params.position?.trim(),
       department: params.department?.trim(),
+      profileImage: params.profileImage,
     );
   }
 }

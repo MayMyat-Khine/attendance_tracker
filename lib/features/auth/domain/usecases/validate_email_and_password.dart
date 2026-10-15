@@ -1,6 +1,7 @@
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/core/error/unit.dart';
+
 Result<Unit> validateEmailAndPassword({
   required String email,
   required String password,

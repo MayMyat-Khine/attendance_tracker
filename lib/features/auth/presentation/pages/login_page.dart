@@ -122,11 +122,7 @@ class _LoginLogo extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Icon(
-            Icons.schedule,
-            size: 48,
-            color: colorScheme.onPrimary,
-          ),
+          child: Icon(Icons.schedule, size: 48, color: colorScheme.onPrimary),
         ),
       ),
     );

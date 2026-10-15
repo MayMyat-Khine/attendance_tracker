@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/core/error/result.dart';
 import 'package:attendance_tracker/core/error/unit.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/app_user.dart';
@@ -16,6 +17,7 @@ abstract class AuthRepository {
     String? name,
     String? position,
     String? department,
+    ProfileImage? profileImage,
   });
 
   Future<Result<Unit>> sendPasswordReset({required String email});

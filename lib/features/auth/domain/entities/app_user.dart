@@ -8,6 +8,7 @@ final class AppUser {
     this.name,
     this.position,
     this.department,
+    this.photoUrl,
   });
 
   final String id;
@@ -16,4 +17,5 @@ final class AppUser {
   final String? name;
   final String? position;
   final String? department;
+  final String? photoUrl;
 }

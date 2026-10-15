@@ -53,6 +53,26 @@ class _RegisterPageState extends State<RegisterPage> {
               child: ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
+                  if (state.profileImage case final image?)
+                    Center(
+                      child: CircleAvatar(
+                        radius: 44,
+                        backgroundImage: MemoryImage(image.bytes),
+                      ),
+                    ),
+                  TextButton.icon(
+                    onPressed: isSubmitting
+                        ? null
+                        : () => context.read<RegisterBloc>().add(
+                            const ProfileImageRequested(),
+                          ),
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(
+                      state.profileImage == null
+                          ? 'Choose profile image'
+                          : 'Change profile image',
+                    ),
+                  ),
                   _UserRegisterFields(
                     emailController: _emailController,
                     passwordController: _passwordController,
@@ -174,9 +194,9 @@ class _UserRegisterFields extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.error,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
           ),
         ],
         const SizedBox(height: 24),

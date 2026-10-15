@@ -9,6 +9,7 @@ final class AppUserModel {
     this.name,
     this.position,
     this.department,
+    this.photoUrl,
   });
 
   final String id;
@@ -17,6 +18,7 @@ final class AppUserModel {
   final String? name;
   final String? position;
   final String? department;
+  final String? photoUrl;
 
   AppUser toEntity() {
     return AppUser(
@@ -26,6 +28,7 @@ final class AppUserModel {
       name: name,
       position: position,
       department: department,
+      photoUrl: photoUrl,
     );
   }
 
@@ -37,6 +40,7 @@ final class AppUserModel {
       name: user.name,
       position: user.position,
       department: user.department,
+      photoUrl: user.photoUrl,
     );
   }
 
@@ -48,6 +52,9 @@ final class AppUserModel {
       'position': position ?? '',
       'department': department ?? '',
       'role': role.name,
+      'nameLower': (name ?? '').trim().toLowerCase(),
+      'emailLower': email.trim().toLowerCase(),
+      'photoUrl': photoUrl ?? '',
     };
   }
 
@@ -66,14 +73,14 @@ final class AppUserModel {
     if (role == null) {
       return null;
     }
-    final storedId = data['id'];
     return AppUserModel(
-      id: storedId is String && storedId.isNotEmpty ? storedId : id,
+      id: id,
       email: email,
       role: role,
       name: _stringField(data['name']),
       position: _stringField(data['position']),
       department: _stringField(data['department']),
+      photoUrl: _stringField(data['photoUrl']),
     );
   }
 

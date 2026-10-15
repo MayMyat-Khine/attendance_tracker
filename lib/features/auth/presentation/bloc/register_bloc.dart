@@ -1,3 +1,5 @@
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
+import 'package:attendance_tracker/features/auth/domain/usecases/pick_profile_image.dart';
 import 'package:bloc/bloc.dart';
 
 import 'package:attendance_tracker/core/error/result.dart';
@@ -6,14 +8,35 @@ import 'package:attendance_tracker/features/auth/presentation/bloc/register_even
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_state.dart';
 
 final class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
-  RegisterBloc({required this._registerAccount})
-    : super(const RegisterCheckingSession()) {
+  RegisterBloc({
+    required this._registerAccount,
+    required this._pickProfileImage,
+  }) : super(const RegisterCheckingSession()) {
+    on<ProfileImageRequested>(_onPickImage);
     on<RegisterStarted>(_onStarted);
     on<RegisterSubmitted>(_onSubmitted);
     add(const RegisterStarted());
   }
 
   final RegisterAccount _registerAccount;
+  final PickProfileImage _pickProfileImage;
+  ProfileImage? _image;
+
+  Future<void> _onPickImage(
+    ProfileImageRequested event,
+    Emitter<RegisterState> emit,
+  ) async {
+    if (_isSubmitting) return;
+    emit(RegisterReady(profileImage: _image, isSubmitting: true));
+    final result = await _pickProfileImage();
+    switch (result) {
+      case Success(:final value):
+        _image = value ?? _image;
+        emit(RegisterReady(profileImage: _image));
+      case ResultFailure(:final failure):
+        emit(RegisterReady(profileImage: _image, failure: failure));
+    }
+  }
 
   Future<void> _onStarted(
     RegisterStarted event,
@@ -30,7 +53,7 @@ final class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       return;
     }
 
-    emit(const RegisterReady(isSubmitting: true));
+    emit(RegisterReady(isSubmitting: true, profileImage: _image));
     final result = await _registerAccount(
       RegisterAccountParams(
         email: event.email,
@@ -38,13 +61,14 @@ final class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
         name: event.name,
         position: event.position,
         department: event.department,
+        profileImage: _image,
       ),
     );
     switch (result) {
       case Success(:final value):
         emit(RegisterSucceeded(value));
       case ResultFailure(:final failure):
-        emit(RegisterReady(failure: failure));
+        emit(RegisterReady(failure: failure, profileImage: _image));
     }
   }
 

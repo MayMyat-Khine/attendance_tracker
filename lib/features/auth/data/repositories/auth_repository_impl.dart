@@ -1,3 +1,4 @@
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/map_to_failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
@@ -26,6 +27,7 @@ final class AuthRepositoryImpl implements AuthRepository {
       }
       return Success(model.toEntity());
     } catch (error) {
+      await _signOutQuietly();
       return ResultFailure(mapToFailure(error));
     }
   }
@@ -38,7 +40,13 @@ final class AuthRepositoryImpl implements AuthRepository {
     String? name,
     String? position,
     String? department,
+    ProfileImage? profileImage,
   }) async {
+    if (role != UserRole.user) {
+      return const ResultFailure(
+        PermissionFailure('Admin roles are assigned in Firebase.'),
+      );
+    }
     try {
       final model = await _remote.register(
         email: email,
@@ -47,6 +55,7 @@ final class AuthRepositoryImpl implements AuthRepository {
         name: name,
         position: position,
         department: department,
+        profileImage: profileImage,
       );
       return Success(model.toEntity());
     } catch (error) {

@@ -21,3 +21,7 @@ final class RegisterSubmitted extends RegisterEvent {
   final String? position;
   final String? department;
 }
+
+final class ProfileImageRequested extends RegisterEvent {
+  const ProfileImageRequested();
+}

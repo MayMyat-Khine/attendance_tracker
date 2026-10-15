@@ -11,7 +11,7 @@ final class LoginBloc extends Bloc<LoginEvent, LoginState> {
   LoginBloc({
     required this._signIn,
     required this._sendPasswordReset,
-    required this._signOut,
+    required SignOut signOut,
   }) : super(const LoginCheckingSession()) {
     on<LoginStarted>(_onStarted);
     on<LoginSubmitted>(_onSubmitted);
@@ -21,13 +21,8 @@ final class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   final SignIn _signIn;
   final SendPasswordReset _sendPasswordReset;
-  final SignOut _signOut;
 
-  Future<void> _onStarted(
-    LoginStarted event,
-    Emitter<LoginState> emit,
-  ) async {
-    await _signOut();
+  Future<void> _onStarted(LoginStarted event, Emitter<LoginState> emit) async {
     emit(const LoginReady());
   }
 

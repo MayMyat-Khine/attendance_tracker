@@ -1,3 +1,9 @@
+import 'package:attendance_tracker/core/network/network_info.dart';
+import 'package:attendance_tracker/core/config/app_environment.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:attendance_tracker/core/error/map_to_failure.dart';
+import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -8,14 +14,17 @@ import 'package:attendance_tracker/features/auth/domain/entities/user_role.dart'
 final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   FirebaseAuthRemoteDataSource({
     FirebaseAuth? auth,
+    required this._networkInfo,
     FirebaseFirestore? firestore,
   }) : _auth = auth ?? FirebaseAuth.instance,
        _firestore = firestore ?? FirebaseFirestore.instance;
 
+  final NetworkInfo _networkInfo;
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
 
-  static const _users = 'users';
+  static String get _users => AppConfig.users;
+  AppUserModel? _cachedProfile;
 
   @override
   Future<AppUserModel?> signIn({
@@ -31,7 +40,7 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       throw FirebaseException(plugin: 'firebase_auth', code: 'user-not-found');
     }
 
-    final profile = await _readProfile(uid);
+    final profile = await _readProfile(uid, server: true);
     if (profile == null) {
       await _auth.signOut();
     }
@@ -46,6 +55,7 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     String? name,
     String? position,
     String? department,
+    ProfileImage? profileImage,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -56,16 +66,41 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       throw FirebaseException(plugin: 'firebase_auth', code: 'user-not-found');
     }
 
-    final model = AppUserModel(
-      id: uid,
-      email: email,
-      role: role,
-      name: name,
-      position: position,
-      department: department,
-    );
-    await _firestore.collection(_users).doc(uid).set(model.toJson());
-    return model;
+    String? photoUrl;
+    try {
+      if (profileImage != null) {
+        final ref = FirebaseStorage.instance.ref(
+          '${AppConfig.profiles}/$uid/avatar',
+        );
+        await ref.putData(
+          profileImage.bytes,
+          SettableMetadata(contentType: profileImage.contentType),
+        );
+        photoUrl = await ref.getDownloadURL();
+      }
+      final model = AppUserModel(
+        id: uid,
+        email: email,
+        role: UserRole.user,
+        photoUrl: photoUrl,
+        name: name,
+        position: position,
+        department: department,
+      );
+      await _firestore.collection(_users).doc(uid).set(model.toJson());
+      _cachedProfile = model;
+      return model;
+    } catch (_) {
+      try {
+        await FirebaseStorage.instance
+            .ref('${AppConfig.profiles}/$uid/avatar')
+            .delete();
+      } catch (_) {}
+      try {
+        await credential.user?.delete();
+      } catch (_) {}
+      rethrow;
+    }
   }
 
   @override
@@ -80,6 +115,9 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       return null;
     }
 
+    if (_cachedProfile?.id == uid) {
+      return _cachedProfile;
+    }
     final profile = await _readProfile(uid);
     if (profile == null) {
       await _auth.signOut();
@@ -88,10 +126,23 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    _cachedProfile = null;
+    await _auth.signOut();
+  }
 
-  Future<AppUserModel?> _readProfile(String uid) async {
-    final snapshot = await _firestore.collection(_users).doc(uid).get();
+  Future<AppUserModel?> _readProfile(String uid, {bool server = false}) async {
+    final offline = !server && !await _networkInfo.isConnected;
+    final ref = _firestore.collection(_users).doc(uid);
+    DocumentSnapshot<Map<String, Object?>> snapshot;
+    try {
+      snapshot = await ref
+          .get(GetOptions(source: offline ? Source.cache : Source.server))
+          .timeout(const Duration(seconds: 8));
+    } catch (error) {
+      if (server || mapToFailure(error) is! NetworkFailure) rethrow;
+      snapshot = await ref.get(const GetOptions(source: Source.cache));
+    }
     final data = snapshot.data();
     if (data == null) {
       return null;
@@ -101,6 +152,7 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       await _auth.signOut();
       throw FirebaseException(plugin: 'cloud_firestore', code: 'missing-role');
     }
+    _cachedProfile = profile;
     return profile;
   }
 }
