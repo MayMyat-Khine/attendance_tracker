@@ -1,30 +1,30 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:attendance_tracker/app.dart';
+import 'package:attendance_tracker/app_dependencies.dart';
+import 'package:attendance_tracker/features/auth/domain/usecases/get_signed_in_user.dart';
+import 'package:attendance_tracker/features/auth/domain/usecases/register_account.dart';
+import 'package:attendance_tracker/features/auth/domain/usecases/send_password_reset.dart';
+import 'package:attendance_tracker/features/auth/domain/usecases/sign_in.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:attendance_tracker/main.dart';
+import 'support/fake_auth_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows user and admin entry points', (tester) async {
+    final repository = FakeAuthRepository();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      App(
+        dependencies: AppDependencies(
+          signIn: SignIn(repository),
+          registerAccount: RegisterAccount(repository),
+          sendPasswordReset: SendPasswordReset(repository),
+          getSignedInUser: GetSignedInUser(repository),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('User'), findsOneWidget);
+    expect(find.text('Admin'), findsOneWidget);
   });
 }

@@ -1,0 +1,15 @@
+---
+description: Do not run or write tests unless the user explicitly asks
+alwaysApply: true
+---
+
+# Testing disabled
+
+Until the user turns this back on:
+
+- Do not run `flutter test`, `flutter analyze` for test files, or any other test command after changes.
+- Do not add, update, or generate unit tests, widget tests, or fake test helpers.
+- Do not read or apply the attendance-unit-tests skill unless the user asks for tests.
+- Ship feature and bug-fix work without a test pass in the same change.
+
+Only run or write tests when the user explicitly asks (for example "run tests" or "add unit tests").
