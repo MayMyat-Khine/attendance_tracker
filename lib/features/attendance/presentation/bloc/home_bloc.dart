@@ -70,6 +70,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
           HomeReady(
             name: current.name,
             email: current.email,
+            photoUrl: current.photoUrl,
             history: current.history,
             location: current.location,
             failure: current.failure,
@@ -94,6 +95,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
       HomeReady(
         name: current.name,
         email: current.email,
+        photoUrl: current.photoUrl,
         history: current.history,
         location: current.location,
         isSubmitting: true,
@@ -106,6 +108,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
           HomeReady(
             name: current.name,
             email: current.email,
+            photoUrl: current.photoUrl,
             history: current.history,
             location: current.location,
             failure: failure,
@@ -140,6 +143,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
       HomeReady(
         name: current.name,
         email: current.email,
+        photoUrl: current.photoUrl,
         history: current.history,
         location: current.location,
         isSubmitting: true,
@@ -202,6 +206,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
               HomeReady(
                 name: _displayName(user),
                 email: user.email,
+                photoUrl: _photoUrl(user),
                 history: value,
                 location: located.location ?? _locationFrom(state),
                 failure: failure ?? located.failure ?? _syncFailure(sync),
@@ -240,6 +245,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
         HomeReady(
           name: current.name,
           email: current.email,
+          photoUrl: current.photoUrl,
           history: current.history,
           location: location ?? current.location,
           failure: failure,
@@ -262,6 +268,14 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
       HomeReady(:final location) => location,
       _ => null,
     };
+  }
+
+  String? _photoUrl(AppUser user) {
+    final photo = user.photoUrl?.trim();
+    if (photo == null || photo.isEmpty) {
+      return null;
+    }
+    return photo;
   }
 
   String _displayName(AppUser user) {

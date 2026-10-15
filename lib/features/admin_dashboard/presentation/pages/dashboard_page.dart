@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
 import 'package:attendance_tracker/features/admin_dashboard/presentation/bloc/dashboard_bloc.dart';
+import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -39,7 +40,7 @@ class DashboardPage extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                'Today · ${DateTime.now().toLocal().toString().split(' ').first}',
+                'Today · ${displayLocalDate(DateTime.now())}',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),

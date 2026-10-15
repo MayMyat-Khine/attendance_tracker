@@ -10,11 +10,11 @@ Agreed on 2026-10-15: complete every mandatory requirement in the supplied codin
 | BLoC | Dashboard, users, admin history, session guard, registration, home/history flows |
 | Light/Dark | Existing system-controlled Material themes retained |
 | Auth and roles | Email/password, users-only signup, Firebase-assigned admin, guarded routes/repositories |
-| Profile image | Gallery picker, image validation/preview, Storage upload, profile photo URL |
+| Profile image | Gallery picker, image validation/preview, temporary Cloudinary upload, secure URL stored as photoUrl |
 | Admin Dashboard | Registered-user total and separate local-day check-in/out counts |
 | Users list | Name/email prefix search, cursor pagination, refresh, profile links |
 | Admin history | All/per-user logs, inclusive date ranges, pagination, refresh, coordinates |
-| User attendance/history | One daily session, fresh location on both actions, complete saved history |
+| User attendance/history | One daily session, fresh location on the home card, 12-hour times or Absent, shared bordered history cards |
 | Offline-first | Durable atomic queue, cached profile/history, pending rows, reconnect/resume sync |
 | Security | Owner/admin read rules, immutable roles, daily record/session transaction rules, restricted Storage |
 

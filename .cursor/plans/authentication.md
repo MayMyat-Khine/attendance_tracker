@@ -22,9 +22,9 @@ isProject: false
 
 # Email and password authentication
 
-Separate admin and user flows. Register collects email and password only. This replaces the earlier “users-only registration with name and profile image” rule for this feature.
+Separate admin and user flows. Register collects name, email, password, and a profile image. The image is uploaded to Cloudinary, and the secure URL is stored as `photoUrl`.
 
-After a successful sign-in or registration, admin goes to a placeholder Dashboard and user goes to a placeholder Home. Those screens are titles only so the redirect has a destination. Check-in, user lists, and profile images stay out of this change.
+After a successful sign-in or registration, admin goes to a placeholder Dashboard and user goes to a placeholder Home. Those screens are titles only so the redirect has a destination. Check-in and user lists stay out of this change. Registration uploads the profile image to Cloudinary and stores the returned secure URL as `photoUrl`.
 
 Forgot password is a button on each login screen. It sends a Firebase reset email to the address already typed in the email field and shows a snackbar. There is no third screen.
 
@@ -56,7 +56,7 @@ Password reset needs a value inside `Success`, and `Result<void>` cannot hold on
 
 Firebase stays in the data layer. `AuthRemoteDataSource` calls `FirebaseAuth` and Firestore. `AuthRepositoryImpl` catches exceptions and returns `ResultFailure(mapToFailure(error))`. Existing mapper copy is reused for wrong password, weak password, email in use, and network errors.
 
-On register, create the auth user, then write `users/{uid}` with `email`, `emailLower`, and `role`. No name and no photo. The role value is the one passed from that flow.
+On register, create the auth user, upload the profile image to Cloudinary, then write `users/{uid}` with `email`, `emailLower`, `role`, and `photoUrl` set to Cloudinary’s `secure_url`. The role value is the one passed from that flow.
 
 ```mermaid
 flowchart TD

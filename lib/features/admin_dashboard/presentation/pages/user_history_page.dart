@@ -28,7 +28,7 @@ class UserHistoryPage extends StatelessWidget {
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.date_range),
                 label: Text(
-                  '${formatAttendanceDate(ready.from)} — ${formatAttendanceDate(ready.to)}',
+                  '${displayLocalDate(ready.from)} — ${displayLocalDate(ready.to)}',
                 ),
                 onPressed: () async {
                   final range = await showDateRangePicker(
@@ -90,21 +90,21 @@ class UserHistoryPage extends StatelessWidget {
                                 log.email,
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
-                              Text(log.record.date),
+                              Text(displayAttendanceDate(log.record.date)),
                               const SizedBox(height: 8),
                               Text(
-                                'Check in: ${log.record.checkInAt?.toLocal() ?? log.record.checkIn}',
+                                'Check in: ${log.record.checkIn.isEmpty ? 'Absent' : displayAttendanceTime(log.record.checkIn)}',
                               ),
-                              Text(
-                                'Location: ${log.record.latitude?.toStringAsFixed(5)}, ${log.record.longitude?.toStringAsFixed(5)}',
-                              ),
-                              Text(
-                                'Check out: ${log.record.checkOutAt?.toLocal().toString() ?? 'Open'}',
-                              ),
-                              if (log.record.checkOutAt != null)
+                              if (log.record.latitude != null &&
+                                  log.record.longitude != null)
                                 Text(
-                                  'Location: ${log.record.checkOutLatitude?.toStringAsFixed(5)}, ${log.record.checkOutLongitude?.toStringAsFixed(5)}',
+                                  displayLocation(
+                                    '${log.record.latitude!.toStringAsFixed(5)}, ${log.record.longitude!.toStringAsFixed(5)}',
+                                  ),
                                 ),
+                              Text(
+                                'Check out: ${log.record.checkOut.isEmpty ? 'Absent' : displayAttendanceTime(log.record.checkOut)}',
+                              ),
                             ],
                           ),
                         ),

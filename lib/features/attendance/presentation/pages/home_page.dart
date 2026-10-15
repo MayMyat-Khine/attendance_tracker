@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:attendance_tracker/core/router/app_router.dart';
+import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/home_bloc.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/home_event.dart';
 import 'package:attendance_tracker/features/attendance/presentation/bloc/home_state.dart';
@@ -94,13 +95,31 @@ class _HomeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = state.history.days.isEmpty ? null : state.history.days.first;
+    final location = state.location;
 
     return Column(
       children: [
-        ListTile(title: Text(state.name), subtitle: Text(state.email)),
+        ListTile(
+          leading: CircleAvatar(
+            backgroundImage: state.photoUrl?.isNotEmpty == true
+                ? NetworkImage(state.photoUrl!)
+                : null,
+            child: state.photoUrl?.isNotEmpty == true
+                ? null
+                : const Icon(Icons.person),
+          ),
+          title: Text(state.name),
+          subtitle: Text(state.email),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: AttendanceProfileCard(
+            date: today?.date ?? formatAttendanceDate(DateTime.now()),
+            locationLabel: location == null
+                ? 'Check in Location unavailable. Enable GPS and location permission.'
+                : displayLocation(
+                    '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}',
+                  ),
             day: today,
             action: state.history.action,
             isSubmitting: state.isSubmitting,
@@ -124,22 +143,6 @@ class _HomeBody extends StatelessWidget {
                   Navigator.pushNamed(context, AppRouter.history);
                 },
                 child: const Text('See more'),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              const Icon(Icons.location_on_outlined, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  state.location == null
-                      ? 'Location unavailable. Enable GPS and location permission.'
-                      : '${state.location!.latitude.toStringAsFixed(5)}, ${state.location!.longitude.toStringAsFixed(5)}',
-                ),
               ),
             ],
           ),

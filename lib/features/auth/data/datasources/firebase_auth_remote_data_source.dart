@@ -1,8 +1,9 @@
 import 'package:attendance_tracker/core/network/network_info.dart';
 import 'package:attendance_tracker/core/config/app_environment.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:attendance_tracker/core/error/map_to_failure.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/auth/data/datasources/cloudinary_profile_uploader.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,12 +17,15 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     FirebaseAuth? auth,
     required this._networkInfo,
     FirebaseFirestore? firestore,
+    CloudinaryProfileUploader? cloudinary,
   }) : _auth = auth ?? FirebaseAuth.instance,
-       _firestore = firestore ?? FirebaseFirestore.instance;
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _cloudinary = cloudinary ?? const CloudinaryProfileUploader();
 
   final NetworkInfo _networkInfo;
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final CloudinaryProfileUploader _cloudinary;
 
   static String get _users => AppConfig.users;
   AppUserModel? _cachedProfile;
@@ -69,14 +73,15 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     String? photoUrl;
     try {
       if (profileImage != null) {
-        final ref = FirebaseStorage.instance.ref(
-          '${AppConfig.profiles}/$uid/avatar',
-        );
-        await ref.putData(
-          profileImage.bytes,
-          SettableMetadata(contentType: profileImage.contentType),
-        );
-        photoUrl = await ref.getDownloadURL();
+        // final ref = FirebaseStorage.instance.ref(
+        //   '${AppConfig.profiles}/$uid/avatar',
+        // );
+        // await ref.putData(
+        //   profileImage.bytes,
+        //   SettableMetadata(contentType: profileImage.contentType),
+        // );
+        // photoUrl = await ref.getDownloadURL();
+        photoUrl = await _cloudinary.upload(uid: uid, image: profileImage);
       }
       final model = AppUserModel(
         id: uid,
@@ -91,11 +96,11 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       _cachedProfile = model;
       return model;
     } catch (_) {
-      try {
-        await FirebaseStorage.instance
-            .ref('${AppConfig.profiles}/$uid/avatar')
-            .delete();
-      } catch (_) {}
+      // try {
+      //   await FirebaseStorage.instance
+      //       .ref('${AppConfig.profiles}/$uid/avatar')
+      //       .delete();
+      // } catch (_) {}
       try {
         await credential.user?.delete();
       } catch (_) {}

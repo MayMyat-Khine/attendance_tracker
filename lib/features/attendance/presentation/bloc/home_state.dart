@@ -24,6 +24,7 @@ final class HomeReady extends HomeState {
   const HomeReady({
     required this.name,
     required this.email,
+    this.photoUrl,
     required this.history,
     required this.location,
     this.failure,
@@ -32,6 +33,7 @@ final class HomeReady extends HomeState {
 
   final String name;
   final String email;
+  final String? photoUrl;
   final UserHistory history;
   final GeoLocation? location;
   final Failure? failure;

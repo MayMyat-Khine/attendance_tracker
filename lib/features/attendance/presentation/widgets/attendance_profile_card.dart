@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/attendance/domain/attendance_time.dart';
 import 'package:attendance_tracker/features/attendance/domain/entities/attendance_action.dart';
 import 'package:attendance_tracker/features/attendance/domain/entities/attendance_day.dart';
 
 class AttendanceProfileCard extends StatelessWidget {
   const AttendanceProfileCard({
+    required this.date,
+    required this.locationLabel,
     required this.day,
     required this.action,
     required this.isSubmitting,
@@ -15,6 +18,8 @@ class AttendanceProfileCard extends StatelessWidget {
     super.key,
   });
 
+  final String date;
+  final String locationLabel;
   final AttendanceDay? day;
   final AttendanceAction action;
   final bool isSubmitting;
@@ -40,6 +45,8 @@ class AttendanceProfileCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(displayAttendanceDate(date), style: textTheme.titleMedium),
+                      const SizedBox(height: 16),
                       Text('Check in', style: textTheme.labelLarge),
                       const SizedBox(height: 4),
                       Text(
@@ -53,6 +60,8 @@ class AttendanceProfileCard extends StatelessWidget {
                         _timeLabel(day, isCheckIn: false),
                         style: textTheme.titleMedium,
                       ),
+                      const SizedBox(height: 16),
+                      Text(locationLabel, style: textTheme.bodyMedium),
                     ],
                   ),
                 ),
@@ -83,10 +92,7 @@ class AttendanceProfileCard extends StatelessWidget {
       return 'Absent';
     }
     final value = isCheckIn ? day.checkIn : day.checkOut;
-    if (value.isEmpty) {
-      return '—';
-    }
-    return value;
+    return displayAttendanceTime(value);
   }
 }
 
@@ -113,7 +119,7 @@ class _SquareAction extends StatelessWidget {
       AttendanceAction.completed => null,
     };
     final icon = switch (action) {
-      AttendanceAction.checkIn => Icons.login,
+      AttendanceAction.checkIn => Icons.location_on,
       AttendanceAction.checkOut => Icons.logout,
       AttendanceAction.completed => Icons.check,
     };

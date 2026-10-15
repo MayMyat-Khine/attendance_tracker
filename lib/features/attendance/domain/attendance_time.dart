@@ -17,11 +17,74 @@ String formatAttendanceDate(DateTime value) {
   return '$year-$month-$day';
 }
 
+const _monthLabels = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String displayAttendanceDate(String stored) {
+  final parts = stored.split('-');
+  if (parts.length != 3) {
+    return stored;
+  }
+  final year = int.tryParse(parts[0]);
+  final month = int.tryParse(parts[1]);
+  final day = int.tryParse(parts[2]);
+  if (year == null ||
+      month == null ||
+      day == null ||
+      month < 1 ||
+      month > 12) {
+    return stored;
+  }
+  return '${_monthLabels[month - 1]} $day $year';
+}
+
+String displayLocalDate(DateTime value) {
+  return displayAttendanceDate(formatAttendanceDate(value));
+}
+
+String displayLocation(String coordinates) => 'Check in Location $coordinates';
+
 String formatAttendanceTime(DateTime value) {
   final local = value.toLocal();
   final hour = local.hour.toString().padLeft(2, '0');
   final minute = local.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
+}
+
+String displayAttendanceTime(String stored) {
+  final value = stored.trim();
+  if (value.isEmpty) {
+    return 'Absent';
+  }
+  final parts = value.split(':');
+  if (parts.length != 2) {
+    return value;
+  }
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour == null ||
+      minute == null ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59) {
+    return value;
+  }
+  final period = hour >= 12 ? 'PM' : 'AM';
+  final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+  return '$hour12:${minute.toString().padLeft(2, '0')} $period';
 }
 
 AttendanceRecord? openRecord(List<AttendanceRecord> records) {

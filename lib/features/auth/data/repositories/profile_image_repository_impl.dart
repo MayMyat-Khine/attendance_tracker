@@ -2,13 +2,20 @@ import 'package:image_picker/image_picker.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:attendance_tracker/core/error/map_to_failure.dart';
 import 'package:attendance_tracker/core/error/result.dart';
+import 'package:attendance_tracker/features/auth/data/datasources/photo_permission_data_source.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/profile_image.dart';
 import 'package:attendance_tracker/features/auth/domain/repositories/profile_image_repository.dart';
 
 final class ProfileImageRepositoryImpl implements ProfileImageRepository {
+  ProfileImageRepositoryImpl({PhotoPermissionDataSource? permissions})
+    : _permissions = permissions ?? PhotoPermissionDataSource();
+
+  final PhotoPermissionDataSource _permissions;
+
   @override
   Future<Result<ProfileImage?>> pick() async {
     try {
+      await _permissions.request();
       final file = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         maxWidth: 800,
