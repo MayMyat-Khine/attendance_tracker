@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "attendancetracker-b7a9b",
+    "production": "attendancetracker-b7a9b",
+    "staging": "attendancetracker-b7a9b",
+    "local": "demo-attendance-tracker"
+  }
+}

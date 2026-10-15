@@ -1,0 +1,163 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin(users) {
+      return signedIn() && get(/databases/$(database)/documents/$(users)/$(request.auth.uid)).data.role == 'admin';
+    }
+    function employee(users) {
+      return signedIn() && get(/databases/$(database)/documents/$(users)/$(request.auth.uid)).data.role == 'user';
+    }
+    function validDate(value) { return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+
+    match /users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || admin('users'));
+      allow list: if admin('users');
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['id', 'email', 'role', 'name', 'position', 'department', 'nameLower', 'emailLower', 'photoUrl'])
+        && request.resource.data.id == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'user'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.nameLower == request.resource.data.name.lower()
+        && request.resource.data.emailLower == request.resource.data.email.lower()
+        && request.resource.data.position is string
+        && request.resource.data.department is string
+        && request.resource.data.photoUrl is string;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameLower', 'photoUrl', 'position', 'department'])
+        && request.resource.data.name is string
+        && request.resource.data.nameLower == request.resource.data.name.lower()
+        && request.resource.data.photoUrl is string
+        && request.resource.data.position is string && request.resource.data.department is string;
+      allow delete: if false;
+    }
+    match /attendance/{recordId} {
+      function sessionPath() { return /databases/$(database)/documents/attendance_sessions/$(request.auth.uid); }
+      function own() { return signedIn() && resource.data.userId == request.auth.uid; }
+      allow get: if (signedIn() && recordId.matches('^' + request.auth.uid + '_[0-9]{4}-[0-9]{2}-[0-9]{2}$')) || admin('users');
+      allow list: if own() || admin('users');
+      allow create: if employee('users')
+        && request.resource.data.keys().hasOnly(['userId', 'email', 'date', 'checkin', 'checkout', 'checkInAt', 'checkOutAt', 'location', 'checkOutLocation', 'checkInOperationId', 'checkOutOperationId'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && validDate(request.resource.data.date)
+        && recordId == request.auth.uid + '_' + request.resource.data.date
+        && request.resource.data.checkin is string && request.resource.data.checkin.matches('^[0-2][0-9]:[0-5][0-9]$')
+        && request.resource.data.checkInAt is timestamp
+        && request.resource.data.checkInAt <= request.time + duration.value(5, 'm')
+        && request.resource.data.location is latlng
+        && request.resource.data.checkInOperationId is string
+        && request.resource.data.checkout == '' && request.resource.data.checkOutAt == null
+        && request.resource.data.checkOutLocation == null && request.resource.data.checkOutOperationId == null
+        && (!exists(sessionPath()) || get(sessionPath()).data.openDate == '')
+        && getAfter(sessionPath()).data.openDate == request.resource.data.date;
+      allow update: if employee('users') && own()
+        && resource.data.checkOutAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checkout', 'checkOutAt', 'checkOutLocation', 'checkOutOperationId'])
+        && request.resource.data.checkout is string && request.resource.data.checkout.matches('^[0-2][0-9]:[0-5][0-9]$')
+        && request.resource.data.checkOutAt is timestamp
+        && request.resource.data.checkOutAt >= resource.data.checkInAt
+        && request.resource.data.checkOutAt <= request.time + duration.value(5, 'm')
+        && request.resource.data.checkOutLocation is latlng
+        && request.resource.data.checkOutOperationId is string
+        && get(sessionPath()).data.openDate == resource.data.date
+        && getAfter(sessionPath()).data.openDate == '';
+      allow delete: if false;
+    }
+    match /attendance_sessions/{uid} {
+      function dayPath(date) { return /databases/$(database)/documents/attendance/$(uid + '_' + date); }
+      function opens() {
+        return validDate(request.resource.data.openDate)
+          && !exists(dayPath(request.resource.data.openDate))
+          && getAfter(dayPath(request.resource.data.openDate)).data.checkOutAt == null;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || admin('users'));
+      allow create: if employee('users') && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['openDate']) && opens();
+      allow update: if employee('users') && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['openDate'])
+        && ((resource.data.openDate == '' && opens())
+          || (validDate(resource.data.openDate) && request.resource.data.openDate == ''
+            && get(dayPath(resource.data.openDate)).data.checkOutAt == null
+            && getAfter(dayPath(resource.data.openDate)).data.checkOutAt is timestamp));
+      allow delete: if false;
+    }
+
+    match /staging_users/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || admin('staging_users'));
+      allow list: if admin('staging_users');
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['id', 'email', 'role', 'name', 'position', 'department', 'nameLower', 'emailLower', 'photoUrl'])
+        && request.resource.data.id == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'user'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.nameLower == request.resource.data.name.lower()
+        && request.resource.data.emailLower == request.resource.data.email.lower()
+        && request.resource.data.position is string
+        && request.resource.data.department is string
+        && request.resource.data.photoUrl is string;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'nameLower', 'photoUrl', 'position', 'department'])
+        && request.resource.data.name is string
+        && request.resource.data.nameLower == request.resource.data.name.lower()
+        && request.resource.data.photoUrl is string
+        && request.resource.data.position is string && request.resource.data.department is string;
+      allow delete: if false;
+    }
+    match /staging_attendance/{recordId} {
+      function sessionPath() { return /databases/$(database)/documents/staging_attendance_sessions/$(request.auth.uid); }
+      function own() { return signedIn() && resource.data.userId == request.auth.uid; }
+      allow get: if (signedIn() && recordId.matches('^' + request.auth.uid + '_[0-9]{4}-[0-9]{2}-[0-9]{2}$')) || admin('staging_users');
+      allow list: if own() || admin('staging_users');
+      allow create: if employee('staging_users')
+        && request.resource.data.keys().hasOnly(['userId', 'email', 'date', 'checkin', 'checkout', 'checkInAt', 'checkOutAt', 'location', 'checkOutLocation', 'checkInOperationId', 'checkOutOperationId'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && validDate(request.resource.data.date)
+        && recordId == request.auth.uid + '_' + request.resource.data.date
+        && request.resource.data.checkin is string && request.resource.data.checkin.matches('^[0-2][0-9]:[0-5][0-9]$')
+        && request.resource.data.checkInAt is timestamp
+        && request.resource.data.checkInAt <= request.time + duration.value(5, 'm')
+        && request.resource.data.location is latlng
+        && request.resource.data.checkInOperationId is string
+        && request.resource.data.checkout == '' && request.resource.data.checkOutAt == null
+        && request.resource.data.checkOutLocation == null && request.resource.data.checkOutOperationId == null
+        && (!exists(sessionPath()) || get(sessionPath()).data.openDate == '')
+        && getAfter(sessionPath()).data.openDate == request.resource.data.date;
+      allow update: if employee('staging_users') && own()
+        && resource.data.checkOutAt == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checkout', 'checkOutAt', 'checkOutLocation', 'checkOutOperationId'])
+        && request.resource.data.checkout is string && request.resource.data.checkout.matches('^[0-2][0-9]:[0-5][0-9]$')
+        && request.resource.data.checkOutAt is timestamp
+        && request.resource.data.checkOutAt >= resource.data.checkInAt
+        && request.resource.data.checkOutAt <= request.time + duration.value(5, 'm')
+        && request.resource.data.checkOutLocation is latlng
+        && request.resource.data.checkOutOperationId is string
+        && get(sessionPath()).data.openDate == resource.data.date
+        && getAfter(sessionPath()).data.openDate == '';
+      allow delete: if false;
+    }
+    match /staging_attendance_sessions/{uid} {
+      function dayPath(date) { return /databases/$(database)/documents/staging_attendance/$(uid + '_' + date); }
+      function opens() {
+        return validDate(request.resource.data.openDate)
+          && !exists(dayPath(request.resource.data.openDate))
+          && getAfter(dayPath(request.resource.data.openDate)).data.checkOutAt == null;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || admin('staging_users'));
+      allow create: if employee('staging_users') && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['openDate']) && opens();
+      allow update: if employee('staging_users') && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['openDate'])
+        && ((resource.data.openDate == '' && opens())
+          || (validDate(resource.data.openDate) && request.resource.data.openDate == ''
+            && get(dayPath(resource.data.openDate)).data.checkOutAt == null
+            && getAfter(dayPath(resource.data.openDate)).data.checkOutAt is timestamp));
+      allow delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
