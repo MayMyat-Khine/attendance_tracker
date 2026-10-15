@@ -1,3 +1,9 @@
+import 'package:attendance_tracker/features/auth/domain/usecases/pick_profile_image.dart';
+import 'package:attendance_tracker/features/auth/data/repositories/profile_image_repository_impl.dart';
+import 'package:attendance_tracker/features/admin_dashboard/data/repositories/admin_repository_impl.dart';
+import 'package:attendance_tracker/features/admin_dashboard/domain/usecases/get_dashboard_summary.dart';
+import 'package:attendance_tracker/features/admin_dashboard/domain/usecases/search_users.dart';
+import 'package:attendance_tracker/features/admin_dashboard/domain/usecases/get_admin_history.dart';
 import 'package:attendance_tracker/core/network/network_info.dart';
 import 'package:attendance_tracker/features/attendance/data/datasources/connectivity_network_info.dart';
 import 'package:attendance_tracker/features/attendance/data/datasources/firebase_attendance_remote_data_source.dart';
@@ -21,6 +27,10 @@ import 'package:attendance_tracker/features/auth/domain/usecases/sign_out.dart';
 final class AppDependencies {
   const AppDependencies({
     required this.signIn,
+    required this.pickProfileImage,
+    required this.getDashboardSummary,
+    required this.searchUsers,
+    required this.getAdminHistory,
     required this.registerAccount,
     required this.sendPasswordReset,
     required this.signOut,
@@ -34,15 +44,23 @@ final class AppDependencies {
   });
 
   factory AppDependencies.firebase() {
-    final authRepository = AuthRepositoryImpl(FirebaseAuthRemoteDataSource());
     final networkInfo = ConnectivityNetworkInfo();
+    final authRepository = AuthRepositoryImpl(
+      FirebaseAuthRemoteDataSource(networkInfo: networkInfo),
+    );
     final attendanceRepository = AttendanceRepositoryImpl(
       remote: FirebaseAttendanceRemoteDataSource(),
+      authRepository: authRepository,
       store: PendingAttendanceStore(),
       networkInfo: networkInfo,
     );
+    final adminRepository = AdminRepositoryImpl();
     return AppDependencies(
       signIn: SignIn(authRepository),
+      pickProfileImage: PickProfileImage(ProfileImageRepositoryImpl()),
+      getDashboardSummary: GetDashboardSummary(adminRepository),
+      searchUsers: SearchUsers(adminRepository),
+      getAdminHistory: GetAdminHistory(adminRepository),
       registerAccount: RegisterAccount(authRepository),
       sendPasswordReset: SendPasswordReset(authRepository),
       signOut: SignOut(authRepository),
@@ -59,6 +77,10 @@ final class AppDependencies {
   }
 
   final SignIn signIn;
+  final PickProfileImage pickProfileImage;
+  final GetDashboardSummary getDashboardSummary;
+  final SearchUsers searchUsers;
+  final GetAdminHistory getAdminHistory;
   final RegisterAccount registerAccount;
   final SendPasswordReset sendPasswordReset;
   final SignOut signOut;
