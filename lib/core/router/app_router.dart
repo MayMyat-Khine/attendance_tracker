@@ -30,6 +30,14 @@ abstract final class AppRouter {
   static const adminHistory = '/admin/history';
   static const logout = '/logout';
 
+  static String historyForUser(AppUser user) => Uri(
+    path: adminHistory,
+    queryParameters: {
+      'userId': user.id,
+      'userName': user.name?.isNotEmpty == true ? user.name! : user.email,
+    },
+  ).toString();
+
   static String locationFor(UserRole role) {
     return switch (role) {
       UserRole.admin => dashboard,
@@ -41,6 +49,10 @@ abstract final class AppRouter {
     RouteSettings settings,
     AppDependencies dependencies,
   ) {
+    final location = Uri.parse(settings.name ?? login);
+    final legacyUser = settings.arguments is AppUser
+        ? settings.arguments as AppUser
+        : null;
     return MaterialPageRoute<void>(
       settings: settings,
       builder: (_) {
@@ -48,7 +60,7 @@ abstract final class AppRouter {
           create: (_) => SessionBloc(
             dependencies.getSignedInUser,
             dependencies.signOut,
-            logout: settings.name == logout,
+            logout: location.path == logout,
           ),
           child: BlocBuilder<SessionBloc, SessionState>(
             builder: (context, state) {
@@ -78,21 +90,25 @@ abstract final class AppRouter {
               }
               final user = ready.user;
               if (user == null) {
-                return settings.name == register
+                return location.path == register
                     ? _register(dependencies)
                     : _login(dependencies);
               }
               if (user.role == UserRole.admin) {
-                return switch (settings.name) {
+                return switch (location.path) {
                   users => BlocProvider(
                     create: (_) => UsersBloc(dependencies.searchUsers),
                     child: const UsersPage(),
                   ),
                   adminHistory => _adminHistory(
                     dependencies,
-                    settings.arguments is AppUser
-                        ? settings.arguments as AppUser
-                        : null,
+                    userId:
+                        location.queryParameters['userId'] ?? legacyUser?.id,
+                    userName:
+                        location.queryParameters['userName'] ??
+                        (legacyUser?.name?.isNotEmpty == true
+                            ? legacyUser?.name
+                            : legacyUser?.email),
                   ),
                   _ => BlocProvider(
                     create: (_) =>
@@ -101,7 +117,7 @@ abstract final class AppRouter {
                   ),
                 };
               }
-              return settings.name == history
+              return location.path == history
                   ? _history(dependencies)
                   : _home(dependencies);
             },
@@ -111,14 +127,17 @@ abstract final class AppRouter {
     );
   }
 
-  static Widget _adminHistory(AppDependencies dependencies, AppUser? user) =>
-      BlocProvider(
-        create: (_) =>
-            UserHistoryBloc(dependencies.getAdminHistory, userId: user?.id),
-        child: UserHistoryPage(
-          userName: user?.name?.isNotEmpty == true ? user?.name : user?.email,
-        ),
-      );
+  static Widget _adminHistory(
+    AppDependencies dependencies, {
+    String? userId,
+    String? userName,
+  }) => BlocProvider(
+    create: (_) =>
+        UserHistoryBloc(dependencies.getAdminHistory, userId: userId),
+    child: UserHistoryPage(
+      userName: userId == null ? null : (userName ?? userId),
+    ),
+  );
 
   static Widget _login(AppDependencies dependencies) {
     return BlocProvider(

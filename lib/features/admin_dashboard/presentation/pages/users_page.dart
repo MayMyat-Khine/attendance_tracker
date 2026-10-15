@@ -46,8 +46,8 @@ class _UsersPageState extends State<UsersPage> {
                 onChanged: (_) => _changed(),
                 decoration: InputDecoration(
                   labelText: _byEmail
-                      ? 'Email starts withâ€¦'
-                      : 'Name starts withâ€¦',
+                      ? 'Email starts with…'
+                      : 'Name starts with…',
                   prefixIcon: const Icon(Icons.search),
                 ),
               ),
@@ -100,12 +100,11 @@ class _UsersPageState extends State<UsersPage> {
                               ? user.name!
                               : user.email,
                         ),
-                        subtitle: Text('${user.email} Â· ${user.role.name}'),
+                        subtitle: Text('${user.email} · ${user.role.name}'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.pushNamed(
                           context,
-                          AppRouter.adminHistory,
-                          arguments: user,
+                          AppRouter.historyForUser(user),
                         ),
                       ),
                     if (ready.next != null)
