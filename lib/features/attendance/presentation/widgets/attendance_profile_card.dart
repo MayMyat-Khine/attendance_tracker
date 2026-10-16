@@ -55,7 +55,9 @@ class AttendanceProfileCard extends StatelessWidget {
                               style: textTheme.titleMedium,
                             ),
                           ),
-                          if (_absent)
+                          if (day?.pendingSync == true)
+                            Text('Pending', style: textTheme.labelLarge)
+                          else if (_absent)
                             Text('Absent', style: textTheme.labelLarge),
                         ],
                       ),

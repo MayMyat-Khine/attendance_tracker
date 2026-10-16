@@ -142,10 +142,9 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
           records: remote,
         );
         return [for (final record in remote) record.toEntity()];
-      } catch (error) {
-        if (mapToFailure(error) is! NetworkFailure) {
-          rethrow;
-        }
+      } catch (_) {
+        // The server copy is unavailable. The cached records plus the
+        // pending queue are still the attendance the user just saved.
       }
     }
     final cached = await _store.readCache(_remote.ownerKey(email));

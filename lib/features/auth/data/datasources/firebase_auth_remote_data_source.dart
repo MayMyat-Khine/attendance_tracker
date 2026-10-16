@@ -1,4 +1,3 @@
-import 'package:attendance_tracker/core/config/built_in_admin.dart';
 import 'package:attendance_tracker/core/network/network_info.dart';
 import 'package:attendance_tracker/core/config/app_environment.dart';
 // import 'package:firebase_storage/firebase_storage.dart';
@@ -36,23 +35,13 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    final builtInAdmin = BuiltInAdmin.matches(email: email, password: password);
-    final credential = builtInAdmin
-        ? await _signInBuiltInAdmin()
-        : await _auth.signInWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
     final uid = credential.user?.uid;
     if (uid == null) {
       throw FirebaseException(plugin: 'firebase_auth', code: 'user-not-found');
-    }
-
-    if (builtInAdmin) {
-      return _cacheBuiltInAdmin(
-        uid,
-        credential.user?.email ?? BuiltInAdmin.email,
-      );
     }
 
     final profile = await _readProfile(uid, server: true);
@@ -134,9 +123,6 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     if (_cachedProfile?.id == uid) {
       return _cachedProfile;
     }
-    if (BuiltInAdmin.matchesEmail(_auth.currentUser?.email)) {
-      return _cacheBuiltInAdmin(uid, _auth.currentUser!.email!);
-    }
     final profile = await _readProfile(uid);
     if (profile == null) {
       await _auth.signOut();
@@ -148,45 +134,6 @@ final class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<void> signOut() async {
     _cachedProfile = null;
     await _auth.signOut();
-  }
-
-  Future<UserCredential> _signInBuiltInAdmin() async {
-    try {
-      return await _auth.signInWithEmailAndPassword(
-        email: BuiltInAdmin.email,
-        password: BuiltInAdmin.password,
-      );
-    } on FirebaseAuthException catch (error) {
-      if (!_builtInAdminCanBeCreated(error.code)) rethrow;
-    }
-
-    try {
-      return await _auth.createUserWithEmailAndPassword(
-        email: BuiltInAdmin.email,
-        password: BuiltInAdmin.password,
-      );
-    } on FirebaseAuthException catch (error) {
-      if (error.code != 'email-already-in-use') rethrow;
-      throw FirebaseAuthException(code: 'invalid-credential');
-    }
-  }
-
-  bool _builtInAdminCanBeCreated(String code) {
-    return code == 'user-not-found' ||
-        code == 'invalid-credential' ||
-        code == 'wrong-password' ||
-        code == 'invalid-login-credentials';
-  }
-
-  AppUserModel _cacheBuiltInAdmin(String uid, String email) {
-    final model = AppUserModel(
-      id: uid,
-      email: email,
-      role: UserRole.admin,
-      name: 'Admin',
-    );
-    _cachedProfile = model;
-    return model;
   }
 
   Future<AppUserModel?> _readProfile(String uid, {bool server = false}) async {
