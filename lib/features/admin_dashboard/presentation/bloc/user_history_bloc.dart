@@ -57,7 +57,7 @@ final class UserHistoryBloc extends Bloc<UserHistoryEvent, UserHistoryState> {
       (event, emit) => _load(emit, from: event.from, to: event.to),
     );
     on<UserHistoryNextPageRequested>((event, emit) async {
-      final current = state as UserHistoryReady;
+      final current = _ready;
       if (!current.loading && current.next != null) {
         await _load(emit, append: true);
       }
@@ -66,6 +66,9 @@ final class UserHistoryBloc extends Bloc<UserHistoryEvent, UserHistoryState> {
   }
   final GetAdminHistory _getHistory;
   final String? userId;
+  UserHistoryReady get _ready => switch (state) {
+    UserHistoryReady ready => ready,
+  };
   int _generation = 0;
   Future<void> _load(
     Emitter<UserHistoryState> emit, {
@@ -74,7 +77,7 @@ final class UserHistoryBloc extends Bloc<UserHistoryEvent, UserHistoryState> {
     bool append = false,
   }) async {
     final generation = ++_generation;
-    final current = state as UserHistoryReady;
+    final current = _ready;
     final start = from ?? current.from;
     final end = to ?? current.to;
     emit(

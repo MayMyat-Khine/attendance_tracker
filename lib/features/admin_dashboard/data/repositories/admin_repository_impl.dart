@@ -9,10 +9,16 @@ import 'package:attendance_tracker/features/auth/data/models/app_user_model.dart
 import 'package:attendance_tracker/features/attendance/data/models/attendance_record_model.dart';
 
 final class AdminRepositoryImpl implements AdminRepository {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  AdminRepositoryImpl({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _db = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
+
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+
   Future<Result<T>> _run<T>(Future<T> Function() action) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user?.uid == null) {
         throw FirebaseException(
           plugin: 'cloud_firestore',

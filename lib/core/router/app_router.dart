@@ -64,12 +64,15 @@ abstract final class AppRouter {
           ),
           child: BlocBuilder<SessionBloc, SessionState>(
             builder: (context, state) {
-              if (state is SessionLoading) {
+              final ready = switch (state) {
+                SessionLoading() => null,
+                SessionReady ready => ready,
+              };
+              if (ready == null) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              final ready = state as SessionReady;
               if (ready.failure case final failure?) {
                 return Scaffold(
                   body: Center(

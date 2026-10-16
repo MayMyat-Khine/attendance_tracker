@@ -6,12 +6,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show appFlavor;
 import 'package:attendance_tracker/app.dart';
-import 'package:attendance_tracker/platform/firebase_web_setup.dart';
 import 'package:attendance_tracker/firebase_options.dart';
 import 'package:attendance_tracker/core/config/app_environment.dart';
 
 Future<void> bootstrap(AppEnvironment environment) async {
   WidgetsFlutterBinding.ensureInitialized();
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught error: $error\n$stack');
+    return true;
+  };
+  try {
+    await _initialize(environment);
+  } catch (error, stack) {
+    debugPrint('Startup failed: $error\n$stack');
+    runApp(_StartupErrorApp(error: error, environment: environment));
+    return;
+  }
+  runApp(const App());
+}
+
+Future<void> _initialize(AppEnvironment environment) async {
   if (appFlavor != null && appFlavor != environment.name) {
     throw StateError(
       'Build flavor and Dart entrypoint must use the same environment.',
@@ -21,30 +35,64 @@ Future<void> bootstrap(AppEnvironment environment) async {
   const overrideHost = String.fromEnvironment('EMULATOR_HOST');
   final host = overrideHost.isNotEmpty
       ? overrideHost
-      : !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+      : defaultTargetPlatform == TargetPlatform.android
       ? '10.0.2.2'
       : '127.0.0.1';
-  final options = DefaultFirebaseOptions.currentPlatform;
-  if (kIsWeb && environment == AppEnvironment.local) {
-    await prepareLocalWebFirebase(options, host);
-  }
   try {
-    await Firebase.initializeApp(options: options);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } on FirebaseException catch (error) {
     if (error.code != 'duplicate-app') rethrow;
   }
-  if (kIsWeb) {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      webPersistentTabManager: WebPersistentMultipleTabManager(),
-    );
-  }
   if (environment == AppEnvironment.local) {
-    if (!kIsWeb) await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
     FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
     await FirebaseStorage.instance.useStorageEmulator(host, 9199);
   }
-  // Web restores persisted credentials asynchronously; route guards need the initial auth state.
   await FirebaseAuth.instance.authStateChanges().first;
-  runApp(const App());
+}
+
+class _StartupErrorApp extends StatelessWidget {
+  const _StartupErrorApp({required this.error, required this.environment});
+
+  final Object error;
+  final AppEnvironment environment;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = environment == AppEnvironment.production
+        ? null
+        : error is StateError
+        ? (error as StateError).message
+        : '$error';
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'The app could not start. Check your connection and '
+                    'reopen the app.',
+                    textAlign: TextAlign.center,
+                  ),
+                  if (details != null) ...[
+                    const SizedBox(height: 12),
+                    Text(details, textAlign: TextAlign.center),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

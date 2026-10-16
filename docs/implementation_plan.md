@@ -22,4 +22,4 @@ Staging has separate collections/photo paths in the provided project and shares 
 
 Remaining environment-dependent completion: authenticated live Firebase provisioning/deployment and any necessary legacy migration; real-device interaction checks; iOS compilation on macOS. No live settings or legacy records are claimed to have been changed without deployment evidence.
 
-Web follow-up: browser storage/Web Locks and Firestore multi-tab persistence, local Auth initialization before session restoration, web entry files, updated unit/widget tests, and Playwright emulator integration tests were added at the user's explicit request.
+Web support (browser storage, web Firebase options, and Playwright tests) was later removed. The app targets Android and iOS only.

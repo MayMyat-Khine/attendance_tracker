@@ -6,15 +6,10 @@ import 'package:attendance_tracker/features/attendance/domain/entities/geo_locat
 import 'package:attendance_tracker/features/attendance/domain/repositories/attendance_repository.dart';
 
 final class CheckInParams {
-  const CheckInParams({
-    required this.email,
-    required this.location,
-    this.date,
-  });
+  const CheckInParams({required this.email, required this.location});
 
   final String email;
   final GeoLocation location;
-  final String? date;
 }
 
 final class CheckIn {
@@ -33,7 +28,7 @@ final class CheckIn {
             ValidationFailure(checkOutBeforeCheckInMessage),
           );
         }
-        final today = params.date ?? formatAttendanceDate(DateTime.now());
+        final today = formatAttendanceDate(DateTime.now());
         if (isDayComplete(value, today)) {
           return const ResultFailure(
             ValidationFailure(alreadyCheckedOutMessage),
@@ -42,7 +37,6 @@ final class CheckIn {
         return _repository.checkIn(
           email: params.email,
           location: params.location,
-          date: params.date,
         );
     }
   }

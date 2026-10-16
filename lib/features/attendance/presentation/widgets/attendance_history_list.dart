@@ -63,10 +63,7 @@ class _HistoryCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final checkIn = displayAttendanceTime(day.checkIn);
     final checkOut = displayAttendanceTime(day.checkOut);
-    final absent = isAbsentStatus(
-      checkIn: day.checkIn,
-      checkOut: day.checkOut,
-    );
+    final absent = isAbsentStatus(checkIn: day.checkIn, checkOut: day.checkOut);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -98,7 +95,9 @@ class _HistoryCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _TimeColumn(label: 'Check in', time: checkIn)),
+                Expanded(
+                  child: _TimeColumn(label: 'Check in', time: checkIn),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _TimeColumn(label: 'Check out', time: checkOut),
@@ -109,13 +108,13 @@ class _HistoryCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(displayLocation(day.location!), style: textTheme.bodyMedium),
             ],
-            if (day.checkOutAt != null &&
-                day.checkOutAt!.toLocal().toString().split(' ').first !=
-                    day.date)
-              Text(
-                'Checked out on ${displayLocalDate(day.checkOutAt!)}',
-                style: textTheme.bodyMedium,
-              ),
+            // if (day.checkOutAt != null &&
+            //     day.checkOutAt!.toLocal().toString().split(' ').first !=
+            //         day.date)
+            //   Text(
+            //     'Checked out on ${displayLocalDate(day.checkOutAt!)}',
+            //     style: textTheme.bodyMedium,
+            //   ),
           ],
         ),
       ),

@@ -2,81 +2,95 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:attendance_tracker/core/config/app_environment.dart';
 
+/// Firebase settings come only from `--dart-define-from-file=config/<flavor>.json`.
+/// Live flavors fail at startup when a required value is missing, so a build
+/// can never fall back to another environment's project.
 abstract final class DefaultFirebaseOptions {
+  static const _projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
+  static const _senderId = String.fromEnvironment('FIREBASE_SENDER_ID');
+  static const _storageBucket = String.fromEnvironment(
+    'FIREBASE_STORAGE_BUCKET',
+  );
+  static const _androidApiKey = String.fromEnvironment(
+    'FIREBASE_ANDROID_API_KEY',
+  );
+  static const _androidAppId = String.fromEnvironment(
+    'FIREBASE_ANDROID_APP_ID',
+  );
+  static const _iosApiKey = String.fromEnvironment('FIREBASE_IOS_API_KEY');
+  static const _iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
+  static const _iosBundleId = String.fromEnvironment('IOS_BUNDLE_ID');
+
+  static const _localProjectId = 'demo-attendance-tracker';
+
   static FirebaseOptions get currentPlatform {
-    if (!kIsWeb &&
+    if (kIsWeb ||
         !{
           TargetPlatform.android,
           TargetPlatform.iOS,
         }.contains(defaultTargetPlatform)) {
-      throw UnsupportedError('This app supports Android, iOS, and web.');
+      throw UnsupportedError('This app supports Android and iOS only.');
     }
-    final localWeb = kIsWeb && AppConfig.environment == AppEnvironment.local;
-    const webApp = String.fromEnvironment('FIREBASE_WEB_APP_ID');
-    const webKey = String.fromEnvironment('FIREBASE_WEB_API_KEY');
-    if (kIsWeb && !localWeb && (webApp.isEmpty || webKey.isEmpty)) {
-      throw StateError(
-        'Configure FIREBASE_WEB_APP_ID and FIREBASE_WEB_API_KEY for live web builds. Use main_local.dart with emulators for local testing.',
+    if (AppConfig.environment == AppEnvironment.local) {
+      return _local;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      _require({
+        'FIREBASE_PROJECT_ID': _projectId,
+        'FIREBASE_SENDER_ID': _senderId,
+        'FIREBASE_STORAGE_BUCKET': _storageBucket,
+        'FIREBASE_IOS_API_KEY': _iosApiKey,
+        'FIREBASE_IOS_APP_ID': _iosAppId,
+        'IOS_BUNDLE_ID': _iosBundleId,
+      });
+      return const FirebaseOptions(
+        apiKey: _iosApiKey,
+        appId: _iosAppId,
+        messagingSenderId: _senderId,
+        projectId: _projectId,
+        storageBucket: _storageBucket,
+        iosBundleId: _iosBundleId,
       );
     }
-    final ios = defaultTargetPlatform == TargetPlatform.iOS;
-    final local = AppConfig.environment == AppEnvironment.local;
-    const project = String.fromEnvironment(
-      'FIREBASE_PROJECT_ID',
-      defaultValue: 'attendancetracker-b7a9b',
+    _require({
+      'FIREBASE_PROJECT_ID': _projectId,
+      'FIREBASE_SENDER_ID': _senderId,
+      'FIREBASE_STORAGE_BUCKET': _storageBucket,
+      'FIREBASE_ANDROID_API_KEY': _androidApiKey,
+      'FIREBASE_ANDROID_APP_ID': _androidAppId,
+    });
+    return const FirebaseOptions(
+      apiKey: _androidApiKey,
+      appId: _androidAppId,
+      messagingSenderId: _senderId,
+      projectId: _projectId,
+      storageBucket: _storageBucket,
     );
-    const sender = String.fromEnvironment(
-      'FIREBASE_SENDER_ID',
-      defaultValue: '114999346116',
-    );
-    const bucket = String.fromEnvironment(
-      'FIREBASE_STORAGE_BUCKET',
-      defaultValue: 'attendancetracker-b7a9b.firebasestorage.app',
-    );
-    const androidKey = String.fromEnvironment(
-      'FIREBASE_ANDROID_API_KEY',
-      defaultValue: 'AIzaSyAyfeyrJPe-HsME3dmNcyTX90zIIwbJvVo',
-    );
-    const iosKey = String.fromEnvironment(
-      'FIREBASE_IOS_API_KEY',
-      defaultValue: 'AIzaSyBwqm1FqryWvFO3_1odupVDZrR4UAhKiGo',
-    );
-    const androidApp = String.fromEnvironment(
-      'FIREBASE_ANDROID_APP_ID',
-      defaultValue: '1:114999346116:android:6ca23002fdd2383926da91',
-    );
-    const iosApp = String.fromEnvironment(
-      'FIREBASE_IOS_APP_ID',
-      defaultValue: '1:114999346116:ios:1351c622f7f1247c26da91',
-    );
-    return FirebaseOptions(
-      apiKey: local
-          ? 'local-emulator-key'
-          : kIsWeb
-          ? webKey
-          : (ios ? iosKey : androidKey),
-      appId: kIsWeb
-          ? (local ? '1:114999346116:web:local' : webApp)
-          : ios
-          ? iosApp
-          : androidApp,
-      authDomain: kIsWeb
-          ? (local
-                ? 'demo-attendance-tracker.firebaseapp.com'
-                : const String.fromEnvironment(
-                    'FIREBASE_AUTH_DOMAIN',
-                    defaultValue: 'attendancetracker-b7a9b.firebaseapp.com',
-                  ))
-          : null,
-      messagingSenderId: sender,
-      projectId: local ? 'demo-attendance-tracker' : project,
-      storageBucket: local ? 'demo-attendance-tracker.appspot.com' : bucket,
-      iosBundleId: ios
-          ? const String.fromEnvironment(
-              'IOS_BUNDLE_ID',
-              defaultValue: 'com.example.attendanceTracker',
-            )
-          : null,
+  }
+
+  static FirebaseOptions get _local => FirebaseOptions(
+    apiKey: 'local-emulator-key',
+    appId: defaultTargetPlatform == TargetPlatform.iOS
+        ? '1:000000000000:ios:local'
+        : '1:000000000000:android:local',
+    messagingSenderId: '000000000000',
+    projectId: _localProjectId,
+    storageBucket: '$_localProjectId.appspot.com',
+    iosBundleId: defaultTargetPlatform == TargetPlatform.iOS
+        ? 'com.example.attendanceTracker'
+        : null,
+  );
+
+  static void _require(Map<String, String> values) {
+    final missing = [
+      for (final entry in values.entries)
+        if (entry.value.trim().isEmpty) entry.key,
+    ];
+    if (missing.isEmpty) return;
+    throw StateError(
+      'Missing Firebase config for ${AppConfig.environment.name}: '
+      '${missing.join(', ')}. Run with '
+      '--dart-define-from-file=config/${AppConfig.environment.name}.json.',
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 
 import 'package:attendance_tracker/core/error/app_exception.dart';
@@ -34,6 +36,8 @@ final class GeolocatorLocationDataSource {
       throw const LocationPermissionException();
     } on LocationServiceDisabledException {
       throw const LocationServiceException();
+    } on TimeoutException {
+      throw const LocationTimeoutException();
     }
   }
 }

@@ -16,7 +16,9 @@ class UserHistoryPage extends StatelessWidget {
     ),
     body: BlocBuilder<UserHistoryBloc, UserHistoryState>(
       builder: (context, state) {
-        final ready = state as UserHistoryReady;
+        final ready = switch (state) {
+          UserHistoryReady ready => ready,
+        };
         return Column(
           children: [
             if (userName == null)

@@ -77,7 +77,9 @@ class _UsersPageState extends State<UsersPage> {
         Expanded(
           child: BlocBuilder<UsersBloc, UsersState>(
             builder: (context, state) {
-              final ready = state as UsersReady;
+              final ready = switch (state) {
+                UsersReady ready => ready,
+              };
               return RefreshIndicator(
                 onRefresh: () async {
                   final bloc = context.read<UsersBloc>();

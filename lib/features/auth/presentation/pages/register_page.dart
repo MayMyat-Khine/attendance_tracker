@@ -8,6 +8,7 @@ import 'package:attendance_tracker/features/auth/domain/entities/department.dart
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_bloc.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_event.dart';
 import 'package:attendance_tracker/features/auth/presentation/bloc/register_state.dart';
+import 'package:attendance_tracker/features/auth/presentation/widgets/password_field.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -170,12 +171,10 @@ class _UserRegisterFields extends StatelessWidget {
           enabled: !isSubmitting,
         ),
         const SizedBox(height: 16),
-        TextField(
+        PasswordField(
           controller: passwordController,
-          obscureText: true,
-          autofillHints: const [AutofillHints.password],
-          decoration: const InputDecoration(labelText: 'Password'),
           enabled: !isSubmitting,
+          autofillHints: const [AutofillHints.newPassword],
         ),
         const SizedBox(height: 16),
         TextField(

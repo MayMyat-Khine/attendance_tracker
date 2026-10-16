@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'attendance_persistence_io.dart'
-    if (dart.library.js_interop) 'attendance_persistence_web.dart'
-    as persistence;
+import 'attendance_persistence_io.dart' as persistence;
 
 import 'package:attendance_tracker/features/attendance/data/models/attendance_record_model.dart';
 import 'package:attendance_tracker/features/attendance/data/models/pending_attendance_op.dart';

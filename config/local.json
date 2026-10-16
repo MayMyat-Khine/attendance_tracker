@@ -1,3 +1,4 @@
 {
-  "EMULATOR_HOST": "10.0.2.2"
+  "CLOUDINARY_CLOUD_NAME": "gkcxtexs",
+  "CLOUDINARY_UPLOAD_PRESET": "attendance_profiles_unsigned"
 }

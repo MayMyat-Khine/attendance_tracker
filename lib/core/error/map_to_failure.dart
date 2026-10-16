@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:attendance_tracker/core/error/app_exception.dart';
 import 'package:attendance_tracker/core/error/failure.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:http/http.dart' as http;
 
 Failure mapToFailure(Object error) {
   if (error is OperationFailureException) return error.failure;
@@ -29,10 +30,17 @@ Failure mapToFailure(Object error) {
       'Turn on location services to check in or out.',
     );
   }
+  if (error is LocationTimeoutException) {
+    return const LocationFailure();
+  }
   if (error is AttendanceConflictException) {
     return ValidationFailure(error.message);
   }
-  if (error is SocketException || error is TimeoutException) {
+  if (error is SocketException ||
+      error is TimeoutException ||
+      error is HttpException ||
+      error is HandshakeException ||
+      error is http.ClientException) {
     return const NetworkFailure();
   }
   if (error is FirebaseException) {
@@ -49,8 +57,22 @@ Failure _fromFirebase(FirebaseException error) {
     'unauthorized' || 'permission-denied' => const PermissionFailure(
       'You do not have access to this data.',
     ),
-    'invalid-credential' || 'wrong-password' || 'user-not-found' =>
-      const FirebaseFailure('Email or password is incorrect.'),
+    'unauthenticated' || 'requires-recent-login' => const PermissionFailure(
+      'Your session has expired. Sign in again.',
+    ),
+    'invalid-credential' ||
+    'invalid-login-credentials' ||
+    'wrong-password' ||
+    'user-not-found' => const FirebaseFailure(
+      'Email or password is incorrect.',
+    ),
+    'invalid-email' => const ValidationFailure('Enter a valid email address.'),
+    'user-disabled' => const PermissionFailure(
+      'This account has been disabled. Contact your administrator.',
+    ),
+    'operation-not-allowed' => const FirebaseFailure(
+      'Email sign-in is not enabled for this project.',
+    ),
     'email-already-in-use' => const FirebaseFailure(
       'An account already exists for that email.',
     ),
@@ -61,9 +83,13 @@ Failure _fromFirebase(FirebaseException error) {
     'bucket-not-found' || 'project-not-found' => const FirebaseFailure(
       'Profile storage is not configured. Contact your administrator.',
     ),
-    'too-many-requests' => const FirebaseFailure(
+    'too-many-requests' || 'resource-exhausted' => const FirebaseFailure(
       'Too many attempts. Please try again later.',
     ),
+    'aborted' => const FirebaseFailure(
+      'The data changed while saving. Try again.',
+    ),
+    'not-found' => const FirebaseFailure('The requested data was not found.'),
     'missing-role' => const FirebaseFailure('This account has no role.'),
     _ => const FirebaseFailure('Request failed. Try again.'),
   };

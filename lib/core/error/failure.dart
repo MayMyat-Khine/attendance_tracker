@@ -16,6 +16,13 @@ final class PermissionFailure extends Failure {
   const PermissionFailure(super.message);
 }
 
+final class LocationFailure extends Failure {
+  const LocationFailure([
+    super.message =
+        'Could not get your location. Move to an open area and try again.',
+  ]);
+}
+
 final class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:attendance_tracker/core/config/app_environment.dart';
 import 'package:attendance_tracker/core/theme/app_theme_scope.dart';
 import 'package:attendance_tracker/core/router/app_router.dart';
 import 'package:attendance_tracker/features/attendance/domain/entities/attendance_action.dart';
@@ -93,29 +92,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 }
 
-class _HomeBody extends StatefulWidget {
+class _HomeBody extends StatelessWidget {
   const _HomeBody({required this.state});
 
   final HomeReady state;
 
   @override
-  State<_HomeBody> createState() => _HomeBodyState();
-}
-
-class _HomeBodyState extends State<_HomeBody> {
-  String _selectedDate = formatAttendanceDate(DateTime.now());
-
-  bool get _testDates => AppConfig.environment != AppEnvironment.production;
-
-  @override
   Widget build(BuildContext context) {
-    final state = widget.state;
-    final selectedDate = _testDates
-        ? _selectedDate
-        : formatAttendanceDate(DateTime.now());
-    final today = _dayFor(state.history, selectedDate);
+    final todayDate = formatAttendanceDate(DateTime.now());
+    final today = _dayFor(state.history, todayDate);
     final location = state.location;
-    final action = _actionFor(state.history, selectedDate);
+    final action = _actionFor(state.history, todayDate);
 
     return Column(
       children: [
@@ -145,18 +132,12 @@ class _HomeBodyState extends State<_HomeBody> {
             isSubmitting: state.isSubmitting,
             failure: state.failure,
             onCheckIn: () {
-              context.read<HomeBloc>().add(
-                CheckInRequested(date: _testDates ? selectedDate : null),
-              );
+              context.read<HomeBloc>().add(const CheckInRequested());
             },
             onCheckOut: () {
               context.read<HomeBloc>().add(const CheckOutRequested());
             },
           ),
-        ),
-        if (_testDates) _TestDateList(
-          selectedDate: selectedDate,
-          onSelected: (date) => setState(() => _selectedDate = date),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
@@ -216,53 +197,5 @@ class _HomeBodyState extends State<_HomeBody> {
       return AttendanceAction.checkOut;
     }
     return AttendanceAction.checkIn;
-  }
-}
-
-class _TestDateList extends StatelessWidget {
-  const _TestDateList({
-    required this.selectedDate,
-    required this.onSelected,
-  });
-
-  final String selectedDate;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final dates = [
-      for (var offset = 0; offset < 7; offset++)
-        formatAttendanceDate(today.subtract(Duration(days: offset))),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Text(
-            'Test dates',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-        ),
-        SizedBox(
-          height: 56,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: dates.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final date = dates[index];
-              return ChoiceChip(
-                label: Text(displayAttendanceDate(date)),
-                selected: date == selectedDate,
-                onSelected: (_) => onSelected(date),
-              );
-            },
-          ),
-        ),
-      ],
-    );
   }
 }

@@ -8,6 +8,10 @@ final class LocationServiceException implements Exception {
   const LocationServiceException();
 }
 
+final class LocationTimeoutException implements Exception {
+  const LocationTimeoutException();
+}
+
 final class AttendanceConflictException implements Exception {
   const AttendanceConflictException(this.message);
 

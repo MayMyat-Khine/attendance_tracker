@@ -1,4 +1,3 @@
-import 'package:attendance_tracker/core/config/app_environment.dart';
 import 'package:attendance_tracker/features/auth/domain/repositories/auth_repository.dart';
 import 'package:attendance_tracker/features/auth/domain/entities/user_role.dart';
 import 'package:attendance_tracker/core/error/app_exception.dart';
@@ -62,12 +61,11 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<Result<AttendanceRecord>> checkIn({
     required String email,
     required GeoLocation location,
-    String? date,
   }) async {
     try {
       await _ensureEmployee(email);
       final record = await _store.synchronized(
-        () => _enqueueCheckIn(email: email, location: location, date: date),
+        () => _enqueueCheckIn(email: email, location: location),
       );
       if (!await _networkInfo.isConnected) {
         return Success(record);
@@ -142,9 +140,10 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
           records: remote,
         );
         return [for (final record in remote) record.toEntity()];
-      } catch (_) {
-        // The server copy is unavailable. The cached records plus the
-        // pending queue are still the attendance the user just saved.
+      } catch (error) {
+        // Offline or a flaky server still shows cached plus pending records,
+        // but a denied or expired session must not hide behind stale data.
+        if (mapToFailure(error) is PermissionFailure) rethrow;
       }
     }
     final cached = await _store.readCache(_remote.ownerKey(email));
@@ -154,14 +153,13 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
   Future<AttendanceRecord> _enqueueCheckIn({
     required String email,
     required GeoLocation location,
-    String? date,
   }) async {
     final merged = await _merged(email);
     if (openRecord(merged) != null) {
       throw const AttendanceConflictException(checkOutBeforeCheckInMessage);
     }
     final now = DateTime.now();
-    final recordDate = _testDate(date) ?? formatAttendanceDate(now);
+    final recordDate = formatAttendanceDate(now);
     if (isDayComplete(merged, recordDate)) {
       throw const AttendanceConflictException(alreadyCheckedOutMessage);
     }
@@ -188,13 +186,6 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
       ),
     );
     return record;
-  }
-
-  String? _testDate(String? date) {
-    if (date == null || AppConfig.environment == AppEnvironment.production) {
-      return null;
-    }
-    return date;
   }
 
   Future<AttendanceRecord> _enqueueCheckOut({
@@ -240,48 +231,45 @@ final class AttendanceRepositoryImpl implements AttendanceRepository {
     final ordered =
         pending.where((op) => op.userId == _remote.currentUserId).toList()
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    AttendanceConflictException? rejected;
     for (final op in ordered) {
-      if (op.isCheckIn) {
-        final latitude = op.latitude;
-        final longitude = op.longitude;
-        if (latitude == null || longitude == null) {
-          throw const AttendanceConflictException(checkOutBeforeCheckInMessage);
-        }
-        await _remote
-            .applyCheckIn(
-              email: op.email,
-              date: op.date,
-              time: op.time,
-              createdAt: op.createdAt,
-              operationId: op.id,
-              latitude: latitude,
-              longitude: longitude,
-            )
-            .timeout(const Duration(seconds: 12));
-      } else {
-        final latitude = op.latitude;
-        final longitude = op.longitude;
-        if (latitude == null || longitude == null) {
-          throw const AttendanceConflictException(
-            'Missing location in pending check-out.',
-          );
-        }
-        await _remote
-            .applyCheckOut(
-              email: op.email,
-              date: op.date,
-              time: op.time,
-              createdAt: op.createdAt,
-              operationId: op.id,
-              latitude: latitude,
-              longitude: longitude,
-            )
-            .timeout(const Duration(seconds: 12));
+      try {
+        await _uploadOne(op);
+      } on AttendanceConflictException catch (error) {
+        // The server will never accept this entry; drop it so later entries
+        // still sync, and report it once.
+        rejected ??= AttendanceConflictException(
+          'An offline ${op.isCheckIn ? 'check-in' : 'check-out'} for '
+          '${op.date} was not saved: ${error.message}',
+        );
       }
       final remote = await _remote.fetchByEmail(op.email);
       await _store.writeCache(email: op.userId, records: remote);
       await _store.removePending(op.id);
     }
+    if (rejected != null) throw rejected;
+  }
+
+  Future<void> _uploadOne(PendingAttendanceOp op) async {
+    final latitude = op.latitude;
+    final longitude = op.longitude;
+    if (latitude == null || longitude == null) {
+      throw AttendanceConflictException(
+        op.isCheckIn
+            ? checkOutBeforeCheckInMessage
+            : 'Missing location in pending check-out.',
+      );
+    }
+    final upload = op.isCheckIn ? _remote.applyCheckIn : _remote.applyCheckOut;
+    await upload(
+      email: op.email,
+      date: op.date,
+      time: op.time,
+      createdAt: op.createdAt,
+      operationId: op.id,
+      latitude: latitude,
+      longitude: longitude,
+    ).timeout(const Duration(seconds: 12));
   }
 
   List<AttendanceRecord> _applyPending(

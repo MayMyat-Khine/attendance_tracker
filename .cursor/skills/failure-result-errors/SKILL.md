@@ -64,9 +64,11 @@ final class ResultFailure<T> extends Result<T> {
 
 | Source | Failure |
 | --- | --- |
-| `SocketException`, `TimeoutException`, Firebase `network-request-failed` or `unavailable` | `NetworkFailure` |
-| Firebase `permission-denied` | `PermissionFailure` with a fixed access message |
+| `SocketException`, `TimeoutException`, `HttpException`, `HandshakeException`, `http.ClientException`, Firebase `network-request-failed` or `unavailable` | `NetworkFailure` |
+| Firebase `permission-denied`, `unauthenticated`, `user-disabled` | `PermissionFailure` with a user-safe message |
 | Location or photo permission denied, location service off | `PermissionFailure` |
+| GPS fix timed out (`LocationTimeoutException`) | `LocationFailure` (never `NetworkFailure`) |
+| Firebase `invalid-email` | `ValidationFailure` |
 | Other `FirebaseException` (auth and Firestore) | `FirebaseFailure` with a user-safe message |
 | Anything else | `UnexpectedFailure` |
 

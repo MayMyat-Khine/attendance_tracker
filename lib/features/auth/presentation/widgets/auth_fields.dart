@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:attendance_tracker/core/error/failure.dart';
+import 'package:attendance_tracker/features/auth/presentation/widgets/password_field.dart';
 
 class AuthFields extends StatelessWidget {
   const AuthFields({
@@ -37,13 +38,7 @@ class AuthFields extends StatelessWidget {
           enabled: !isSubmitting,
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: passwordController,
-          obscureText: true,
-          autofillHints: const [AutofillHints.password],
-          decoration: const InputDecoration(labelText: 'Password'),
-          enabled: !isSubmitting,
-        ),
+        PasswordField(controller: passwordController, enabled: !isSubmitting),
         if (message != null) ...[
           const SizedBox(height: 16),
           Text(

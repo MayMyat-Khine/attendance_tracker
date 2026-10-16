@@ -26,10 +26,13 @@ class DashboardPage extends StatelessWidget {
     ),
     body: BlocBuilder<DashboardBloc, DashboardState>(
       builder: (context, state) {
-        if (state is DashboardLoading) {
+        final ready = switch (state) {
+          DashboardLoading() => null,
+          DashboardReady ready => ready,
+        };
+        if (ready == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        final ready = state as DashboardReady;
         return RefreshIndicator(
           onRefresh: () async {
             final bloc = context.read<DashboardBloc>();

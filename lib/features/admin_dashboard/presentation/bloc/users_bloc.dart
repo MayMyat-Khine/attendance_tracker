@@ -58,7 +58,9 @@ final class UsersBloc extends Bloc<UsersEvent, UsersState> {
       await _load(emit, generation: generation);
     });
     on<UsersNextPageRequested>((event, emit) async {
-      final current = state as UsersReady;
+      final current = switch (state) {
+        UsersReady ready => ready,
+      };
       if (current.loading || current.next == null) return;
       emit(UsersReady(users: current.users, next: current.next, loading: true));
       await _load(emit, generation: _generation, previous: current);

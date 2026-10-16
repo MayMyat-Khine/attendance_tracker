@@ -116,11 +116,7 @@ final class HomeBloc extends Bloc<HomeEvent, HomeState> {
         );
       case Success(:final value):
         final result = await _checkIn(
-          CheckInParams(
-            email: current.email,
-            location: value,
-            date: event.date,
-          ),
+          CheckInParams(email: current.email, location: value),
         );
         final submissionFailure = switch (result) {
           ResultFailure(:final failure) => failure,

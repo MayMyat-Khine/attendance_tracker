@@ -7,7 +7,6 @@
   "FIREBASE_IOS_API_KEY": "AIzaSyBwqm1FqryWvFO3_1odupVDZrR4UAhKiGo",
   "FIREBASE_IOS_APP_ID": "1:114999346116:ios:1351c622f7f1247c26da91",
   "IOS_BUNDLE_ID": "com.example.attendanceTracker",
-  "FIREBASE_WEB_APP_ID": "1:114999346116:web:9698b17d4ef11c1e26da91",
-  "FIREBASE_WEB_API_KEY": "AIzaSyBPWbLWBY-HU6r94Tk59xTu-AbZkZyDrkA",
-  "FIREBASE_AUTH_DOMAIN": "attendancetracker-b7a9b.firebaseapp.com"
+  "CLOUDINARY_CLOUD_NAME": "gkcxtexs",
+  "CLOUDINARY_UPLOAD_PRESET": "attendance_profiles_unsigned"
 }
